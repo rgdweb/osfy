@@ -1,0 +1,328 @@
+{
+  "categorias": {
+    "os": {
+      "palavrasChave": ["os", "ordem de serviço", "ordem", "serviço", "abrir os", "nova os", "criar os", "cadastrar os"],
+      "titulo": "Ordens de Serviço",
+      "icone": "clipboard-list",
+      "topicos": {
+        "criar": {
+          "palavrasChave": ["criar", "abrir", "nova", "cadastrar", "fazer", "adicionar"],
+          "perguntas": [
+            {
+              "pergunta": "Como criar uma nova OS?",
+              "resposta": "Para criar uma nova OS:\n\n1. No menu lateral, clique em \"Ordens de Serviço\"\n2. Clique no botão \"Nova OS\" (botão verde no topo)\n3. Preencha os dados do cliente (nome, telefone, CPF)\n4. Preencha os dados do equipamento (tipo, marca, modelo, série)\n5. Descreva o problema relatado\n6. Clique em \"Salvar\"\n\nA OS será criada com status \"Recebido\" e um número único de código de acesso será gerado para o cliente acompanhar."
+            },
+            {
+              "pergunta": "Quais dados são obrigatórios para criar uma OS?",
+              "resposta": "Dados obrigatórios:\n\n**Cliente:**\n- Nome completo\n- Telefone\n\n**Equipamento:**\n- Tipo de equipamento\n- Descrição do problema\n\n**Dados opcionais mas recomendados:**\n- CPF do cliente\n- Email do cliente\n- Marca e modelo do equipamento\n- Número de série\n- Acessórios que acompanharam"
+            }
+          ]
+        },
+        "editar": {
+          "palavrasChave": ["editar", "alterar", "modificar", "mudar", "atualizar"],
+          "perguntas": [
+            {
+              "pergunta": "Como editar uma OS existente?",
+              "resposta": "Para editar uma OS:\n\n1. No menu \"Ordens de Serviço\", clique na OS que deseja editar\n2. Você será direcionado para a página de detalhes\n3. Clique no botão \"Editar\" no topo\n4. Faça as alterações necessárias\n5. Clique em \"Salvar\"\n\nTodas as alterações são registradas no histórico da OS."
+            }
+          ]
+        },
+        "status": {
+          "palavrasChave": ["status", "situacao", "situação", "estado", "andamento", "progresso"],
+          "perguntas": [
+            {
+              "pergunta": "Quais são os status disponíveis?",
+              "resposta": "Os status disponíveis são:\n\n1. **Recebido** - Equipamento chegou na loja\n2. **Em Análise** - Técnico está avaliando o problema\n3. **Aguardando Aprovação** - Orçamento enviado, aguardando cliente\n4. **Aguardando Peça** - Esperando peça chegar\n5. **Em Manutenção** - Reparo em andamento\n6. **Em Testes** - Testando o reparo\n7. **Pronto** - Equipamento pronto para retirada\n8. **Entregue** - Equipamento devolvido ao cliente\n\nQuando você muda o status para \"Pronto\", o sistema pergunta se deseja avisar o cliente via WhatsApp automaticamente."
+            },
+            {
+              "pergunta": "Como alterar o status de uma OS?",
+              "resposta": "Para alterar o status:\n\n1. Abra a OS desejada\n2. No topo da página, clique no seletor de status\n3. Selecione o novo status\n4. Uma janela será aberta para confirmar\n5. Clique em \"Confirmar\"\n\nO cliente será notificado automaticamente por WhatsApp se o status for \"Pronto\"."
+            }
+          ]
+        },
+        "excluir": {
+          "palavrasChave": ["excluir", "apagar", "deletar", "remover", "cancelar"],
+          "perguntas": [
+            {
+              "pergunta": "Como excluir uma OS?",
+              "resposta": "Para excluir uma OS:\n\n1. Abra a OS que deseja excluir\n2. Role até o final da página\n3. Clique no botão \"Excluir\" (botão vermelho)\n4. Confirme a exclusão\n\n⚠️ Atenção: Esta ação não pode ser desfeita!\n\nRecomendamos apenas excluir OSs cadastradas incorretamente. Para OSs finalizadas, apenas mude o status para \"Entregue\"."
+            }
+          ]
+        },
+        "imprimir": {
+          "palavrasChave": ["imprimir", "impressão", "impressao", "pdf", "papel", "via"],
+          "perguntas": [
+            {
+              "pergunta": "Como imprimir uma OS?",
+              "resposta": "Para imprimir uma OS:\n\n1. Abra a OS desejada\n2. Clique no botão \"Imprimir\" no topo\n3. Será aberta uma janela de impressão\n4. Selecione sua impressora ou salve como PDF\n\nA OS é impressa em duas vias:\n- **Via Cliente** - com código de assinatura\n- **Via Loja** - para arquivo interno\n\nDica: Você também pode usar Ctrl+P na página da OS."
+            }
+          ]
+        }
+      }
+    },
+    "orcamento": {
+      "palavrasChave": ["orçamento", "orcamento", "valor", "preço", "preco", "cobrar", "diagnostico", "diagnóstico"],
+      "titulo": "Orçamento e Diagnóstico",
+      "icone": "calculator",
+      "topicos": {
+        "preencher": {
+          "palavrasChave": ["preencher", "colocar", "inserir", "adicionar", "informar", "colocar valor"],
+          "perguntas": [
+            {
+              "pergunta": "Como preencher o orçamento?",
+              "resposta": "Para preencher o orçamento:\n\n1. Abra a OS\n2. Vá na seção \"Diagnóstico e Orçamento\"\n3. Preencha os campos:\n\n   **Diagnóstico:** Descreva o problema encontrado\n   **Solução:** O que foi feito para resolver\n   **Orçamento:** Valor estimado inicial\n   **Valor Serviço:** Mão de obra\n   **Valor Peças:** Custo das peças\n\n4. O valor total é calculado automaticamente\n5. Selecione a forma de pagamento\n6. Clique em \"Salvar\"\n\nO cliente verá o orçamento na página pública e poderá aprovar ou reprovar."
+            },
+            {
+              "pergunta": "Qual a diferença entre Orçamento, Valor Serviço e Valor Peças?",
+              "resposta": "**Orçamento:**\nValor estimado inicial dado ao cliente antes do diagnóstico completo.\n\n**Valor Serviço:**\nValor da mão de obra, ou seja, o trabalho do técnico.\n\n**Valor Peças:**\nCusto das peças utilizadas no reparo.\n\n**Valor Total:**\nSoma de Valor Serviço + Valor Peças.\n\nDica: O campo \"Orçamento\" é informativo. Os campos que afetam o valor final são \"Valor Serviço\" e \"Valor Peças\"."
+            }
+          ]
+        },
+        "aprovar": {
+          "palavrasChave": ["aprovar", "aprovação", "aprovacao", "aceitar", "confirmar"],
+          "perguntas": [
+            {
+              "pergunta": "Como funciona a aprovação do orçamento?",
+              "resposta": "A aprovação funciona assim:\n\n1. Você preenche o orçamento na OS\n2. O cliente acessa a página pública da OS\n3. O cliente vê o valor e detalhes\n4. O cliente clica em \"Aprovar\" ou \"Não Aprovar\"\n5. Você vê a confirmação na OS com data e hora\n\nPara enviar o link para o cliente:\n- Clique no botão \"WhatsApp\" na OS\n- O link é enviado automaticamente\n\nDica: A aprovação do cliente tem valor jurídico e fica registrada na OS."
+            }
+          ]
+        }
+      }
+    },
+    "pagamento": {
+      "palavrasChave": ["pagamento", "pagar", "pix", "boleto", "cartão", "cartao", "cobrança", "cobranca", "receber", "gerar pix", "gerar boleto", "mercadopago", "mercado pago"],
+      "titulo": "Pagamento Online",
+      "icone": "credit-card",
+      "topicos": {
+        "link": {
+          "palavrasChave": ["link", "pagamento", "gerar", "pix", "boleto", "cartão", "todas"],
+          "perguntas": [
+            {
+              "pergunta": "Como gerar link de pagamento para o cliente?",
+              "resposta": "Para gerar link de pagamento:\n\n1. Abra a OS com orçamento aprovado\n2. Vá em \"Diagnóstico e Orçamento\"\n3. Clique no botão \"Gerar Link de Pagamento\"\n4. O sistema cria uma cobrança no Mercado Pago\n\nO link permite que o cliente escolha:\n- PIX (pagamento instantâneo)\n- Cartão de crédito (parcelamento disponível)\n- Boleto bancário\n\nPré-requisitos:\n- Orçamento deve estar aprovado\n- Valor total deve ser maior que zero\n- Sistema de pagamento configurado (fale com o administrador)\n\nNão é necessário CPF do cliente para gerar o pagamento!"
+            },
+            {
+              "pergunta": "O cliente pagou, como confirmo?",
+              "resposta": "Quando o cliente paga via link de pagamento:\n\n1. O sistema marca automaticamente como \"Pago\"\n2. A data de pagamento é registrada\n3. A OS mostra o status \"Pago\" com ✓ verde\n\nSe o pagamento foi em dinheiro ou fora do sistema:\n1. Abra a OS\n2. Marque a opção \"Pago\"\n3. Selecione a forma de pagamento\n4. Salve"
+            }
+          ]
+        },
+        "problemas": {
+          "palavrasChave": ["erro", "problema", "não funciona", "nao funciona", "falhou", "configurado"],
+          "perguntas": [
+            {
+              "pergunta": "Dá erro ao gerar pagamento, o que fazer?",
+              "resposta": "Se aparece erro ao gerar pagamento:\n\n**Possíveis causas:**\n\n1. **Sistema não configurado**\n   - O administrador precisa configurar o Mercado Pago\n   - Acesse: Super Admin → Pagamentos\n\n2. **Orçamento não aprovado**\n   - O cliente precisa aprovar primeiro\n   - Envie o link e solicite aprovação\n\n3. **Valor zero**\n   - Verifique se o valor total está preenchido\n   - Preencha Valor Serviço e/ou Valor Peças\n\nSe o problema persistir, entre em contato com o suporte."
+            }
+          ]
+        }
+      }
+    },
+    "whatsapp": {
+      "palavrasChave": ["whatsapp", "whats", "zap", "mensagem", "enviar", "avisar", "notificar"],
+      "titulo": "WhatsApp",
+      "icone": "message-circle",
+      "topicos": {
+        "enviar": {
+          "palavrasChave": ["enviar", "mandar", "compartilhar", "link"],
+          "perguntas": [
+            {
+              "pergunta": "Como enviar OS por WhatsApp?",
+              "resposta": "Para enviar a OS por WhatsApp:\n\n1. Abra a OS desejada\n2. Clique no botão \"WhatsApp\" no topo\n3. O WhatsApp Web será aberto com mensagem pronta\n4. Selecione o contato do cliente\n5. Envie a mensagem\n\nA mensagem inclui:\n- Número da OS\n- Nome do cliente\n- Equipamento\n- Status atual\n- Link para acompanhar"
+            },
+            {
+              "pergunta": "O cliente é avisado automaticamente quando fica pronto?",
+              "resposta": "Sim! Quando você muda o status para \"Pronto\":\n\n1. O sistema pergunta se deseja avisar o cliente\n2. Se confirmar, o WhatsApp abre com mensagem pronta\n3. A mensagem inclui:\n   - Aviso de que está pronto\n   - Valor total\n   - Endereço da loja\n   - Link da OS\n\nBasta selecionar o contato e enviar!"
+            }
+          ]
+        }
+      }
+    },
+    "assinatura": {
+      "palavrasChave": ["assinatura", "assinar", "rubrica", "digital", "codigo de assinatura"],
+      "titulo": "Assinatura Digital",
+      "icone": "pen-tool",
+      "topicos": {
+        "como": {
+          "palavrasChave": ["como", "cliente", "fazer", "assinar"],
+          "perguntas": [
+            {
+              "pergunta": "Como o cliente assina a OS?",
+              "resposta": "Para o cliente assinar digitalmente:\n\n1. O cliente acessa o link da OS\n2. Clica em \"Assinar Documento\"\n3. Digita o código de segurança (impresso na OS)\n4. Desenha a assinatura com o dedo ou mouse\n5. Clica em \"Confirmar\"\n\nA assinatura fica registrada na OS com:\n- Data e hora\n- IP do assinante\n- Imagem da assinatura\n\nO código de segurança garante que só quem tem a OS física pode assinar."
+            },
+            {
+              "pergunta": "Onde está o código de assinatura?",
+              "resposta": "O código de assinatura está:\n\n1. Na OS impressa (via do cliente)\n2. Na OS impressa (via da loja)\n3. No campo \"Código de Assinatura\" na página da OS\n\nO código é único para cada OS e tem 6 caracteres alfanuméricos.\n\nDica: Anote o código na OS impressa antes de entregar ao cliente."
+            }
+          ]
+        }
+      }
+    },
+    "cliente": {
+      "palavrasChave": ["cliente", "cadastro", "cadastrar cliente", "novo cliente", "cpf"],
+      "titulo": "Clientes",
+      "icone": "users",
+      "topicos": {
+        "cadastrar": {
+          "palavrasChave": ["cadastrar", "novo", "adicionar", "criar"],
+          "perguntas": [
+            {
+              "pergunta": "Como cadastrar um novo cliente?",
+              "resposta": "Para cadastrar um cliente:\n\n1. No menu lateral, clique em \"Clientes\"\n2. Clique em \"Novo Cliente\"\n3. Preencha os dados:\n   - Nome (obrigatório)\n   - Telefone (obrigatório)\n   - Email\n   - CPF\n   - Endereço completo\n4. Clique em \"Salvar\"\n\nDica: Você também pode cadastrar o cliente diretamente ao criar uma nova OS."
+            }
+          ]
+        },
+        "historico": {
+          "palavrasChave": ["histórico", "historico", "atendimentos", "os anterior", "passado"],
+          "perguntas": [
+            {
+              "pergunta": "Como ver o histórico de um cliente?",
+              "resposta": "Para ver o histórico:\n\n1. No menu \"Clientes\", clique no nome do cliente\n2. Você verá:\n   - Dados do cliente\n   - Todas as OSs do cliente\n   - Status de cada OS\n   - Valores\n\nDica: Isso ajuda a ver se o cliente já teve problemas similares antes."
+            }
+          ]
+        }
+      }
+    },
+    "pdv": {
+      "palavrasChave": ["pdv", "venda", "vender", "produto", "estoque", "caixa", "frente de caixa"],
+      "titulo": "PDV - Ponto de Venda",
+      "icone": "shopping-cart",
+      "topicos": {
+        "vender": {
+          "palavrasChave": ["vender", "venda", "fazer venda", "caixa"],
+          "perguntas": [
+            {
+              "pergunta": "Como fazer uma venda no PDV?",
+              "resposta": "Para fazer uma venda:\n\n**1. Abrir o caixa:**\n- No menu lateral, clique em \"Frente de Caixa\" (dentro de PDV)\n- Informe o saldo inicial do caixa\n- Clique em \"Abrir Caixa\"\n\n**2. Adicionar produtos:**\n- Clique nos produtos no grid para adicionar ao carrinho\n- OU use a busca pelo nome do produto\n- OU clique em \"Código\" para ler código de barras\n- OU clique em \"Avulso (F3)\" para venda sem produto cadastrado\n\n**3. Finalizar:**\n- Clique em \"Finalizar Venda (F4)\"\n- Escolha a forma de pagamento:\n  • Dinheiro (calcula troco)\n  • PIX\n  • Cartão Crédito\n  • Cartão Débito\n- Confirme a venda\n\n**Atalhos de teclado:**\n- F2 = Abrir campo de código de barras\n- F3 = Venda avulsa\n- F4 = Finalizar venda"
+            }
+          ]
+        },
+        "produtos": {
+          "palavrasChave": ["produto", "cadastrar produto", "estoque", "item"],
+          "perguntas": [
+            {
+              "pergunta": "Como cadastrar produtos?",
+              "resposta": "Para cadastrar produtos:\n\n**Opção 1 - Direto no PDV:**\n1. Na tela \"Frente de Caixa\", clique no botão verde \"+ Produto\"\n2. Preencha:\n   - Nome do produto\n   - Preço de venda\n   - Estoque inicial\n   - Código de barras (opcional)\n   - Categoria\n   - Imagem (opcional)\n3. Clique em \"Cadastrar\"\n\n**Opção 2 - Menu Produtos:**\n1. No menu lateral, em \"PDV\", clique em \"Produtos\"\n2. Clique em \"Novo Produto\"\n3. Preencha os dados e salve\n\nDica: Cadastre categorias em \"Categorias\" para organizar os produtos."
+            }
+          ]
+        },
+        "caixa": {
+          "palavrasChave": ["abrir caixa", "fechar caixa", "fluxo", "movimento"],
+          "perguntas": [
+            {
+              "pergunta": "Como abrir e fechar o caixa?",
+              "resposta": "**Abrir Caixa:**\n1. No menu lateral, clique em \"Frente de Caixa\" (em PDV)\n2. Informe o valor inicial em caixa\n3. Clique em \"Abrir Caixa\"\n\n**Fechar Caixa:**\n1. No final do dia, clique em \"Fechar Caixa\" (botão vermelho)\n2. O sistema mostra:\n   - Valor inicial\n   - Total de vendas\n   - Saldo esperado\n3. Informe o saldo real em caixa\n4. Adicione observação se necessário\n5. Confirme o fechamento\n\nIsso ajuda a controlar o fluxo diário e identificar diferenças."
+            }
+          ]
+        },
+        "vendaAvulsa": {
+          "palavrasChave": ["avulsa", "venda avulsa", "serviço avulso", "sem produto"],
+          "perguntas": [
+            {
+              "pergunta": "Como fazer uma venda avulsa (sem produto cadastrado)?",
+              "resposta": "Para venda avulsa:\n\n1. Na tela \"Frente de Caixa\", clique em \"Avulso (F3)\"\n2. Preencha:\n   - Descrição (ex: \"Serviço de instalação\")\n   - Valor em R$\n3. Clique em \"Adicionar\"\n\nO item será adicionado ao carrinho e você pode finalizar a venda normalmente.\n\nDica: Use venda avulsa para serviços, taxas ou produtos que não precisa controlar estoque."
+            }
+          ]
+        }
+      }
+    },
+    "configuracoes": {
+      "palavrasChave": ["configuração", "configuracao", "configurar", "logo", "dados da loja", "endereço", "endereco"],
+      "titulo": "Configurações",
+      "icone": "settings",
+      "topicos": {
+        "loja": {
+          "palavrasChave": ["loja", "dados", "informações", "informacoes"],
+          "perguntas": [
+            {
+              "pergunta": "Como configurar os dados da loja?",
+              "resposta": "Para configurar os dados da loja:\n\n1. No menu lateral, clique em \"Configurações\"\n2. Preencha os dados:\n   - Nome da loja\n   - CNPJ\n   - Endereço completo\n   - Telefone\n   - WhatsApp\n   - Email\n   - Horário de funcionamento\n3. Clique em \"Salvar\"\n\nEsses dados aparecem:\n- Nas OSs impressas\n- Na página pública da loja\n- Nas mensagens de WhatsApp"
+            }
+          ]
+        },
+        "logo": {
+          "palavrasChave": ["logo", "imagem", "foto", "marca"],
+          "perguntas": [
+            {
+              "pergunta": "Como colocar a logo da loja?",
+              "resposta": "Para adicionar a logo:\n\n1. No menu \"Configurações\"\n2. Clique em \"Alterar Logo\"\n3. Selecione a imagem (PNG ou JPG)\n4. Ajuste o recorte se necessário\n5. Clique em \"Salvar\"\n\nA logo aparece:\n- No topo da OS impressa\n- Na página pública da OS\n- Na página de consulta da loja\n\nDica: Use uma imagem quadrada com fundo transparente para melhor resultado."
+            }
+          ]
+        }
+      }
+    },
+    "publica": {
+      "palavrasChave": ["página pública", "pagina publica", "cliente ver", "link do cliente", "consultar os"],
+      "titulo": "Página Pública",
+      "icone": "globe",
+      "topicos": {
+        "acessar": {
+          "palavrasChave": ["acessar", "link", "url", "cliente"],
+          "perguntas": [
+            {
+              "pergunta": "Como o cliente acessa a OS?",
+              "resposta": "O cliente pode acessar de duas formas:\n\n**1. Pelo link direto:**\n- Envie o link da OS por WhatsApp\n- O cliente clica e acessa diretamente\n\n**2. Pela página da loja:**\n1. O cliente acessa a URL da loja\n2. Digita o número da OS\n3. Vê o status e detalhes\n\nO link tem formato:\n`seulink.com/os/[codigo-da-os]`\n\nDica: Use o botão \"WhatsApp\" na OS para enviar o link automaticamente."
+            }
+          ]
+        },
+        "funcionalidades": {
+          "palavrasChave": ["pode", "fazer", "funções", "funcoes", "recursos"],
+          "perguntas": [
+            {
+              "pergunta": "O que o cliente pode fazer na página pública?",
+              "resposta": "Na página pública, o cliente pode:\n\n- Ver o status da OS em tempo real\n- Ver a timeline do reparo\n- Ver diagnóstico e solução\n- Aprovar ou reprovar o orçamento\n- Assinar digitalmente a OS\n- Gerar link de pagamento (PIX, Cartão ou Boleto)\n- Ver fotos do equipamento\n- Avaliar o atendimento (estrelas + comentário)\n- Ver dados da loja (endereço, telefone)\n\nTudo isso sem precisar criar conta ou senha!"
+            }
+          ]
+        }
+      }
+    },
+    "avaliacao": {
+      "palavrasChave": ["avaliação", "avaliacao", "estrelas", "nota", "comentário", "comentario", "satisfacao", "satisfação"],
+      "titulo": "Avaliações",
+      "icone": "star",
+      "topicos": {
+        "como": {
+          "palavrasChave": ["como", "cliente", "dar nota"],
+          "perguntas": [
+            {
+              "pergunta": "Como funciona o sistema de avaliações?",
+              "resposta": "O sistema de avaliações funciona assim:\n\n**Quando a OS tem assinatura:**\n1. O cliente pode avaliar com 1 a 5 estrelas\n2. Pode deixar um comentário opcional\n\n**Onde as avaliações aparecem:**\n- Na página da loja (média geral)\n- No painel do técnico\n- Nos relatórios\n\n**Benefícios:**\n- Mostra credibilidade da loja\n- Ajuda a melhorar o atendimento\n- Atrai novos clientes"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "respostasRapidas": [
+    {
+      "pergunta": "Como criar uma OS?",
+      "resposta": "Menu \"Ordens de Serviço\" → \"Nova OS\" → Preencha os dados → Salvar"
+    },
+    {
+      "pergunta": "Como enviar por WhatsApp?",
+      "resposta": "Abra a OS → Clique em \"WhatsApp\" → Selecione o contato → Envie"
+    },
+    {
+      "pergunta": "Como gerar link de pagamento?",
+      "resposta": "Abra a OS → \"Diagnóstico e Orçamento\" → \"Gerar Link de Pagamento\" → Aguarde processar"
+    },
+    {
+      "pergunta": "Como ver a página do cliente?",
+      "resposta": "Abra a OS → Clique em \"Ver como Cliente\" → Veja o que o cliente vê"
+    },
+    {
+      "pergunta": "Como imprimir?",
+      "resposta": "Abra a OS → Clique em \"Imprimir\" → Selecione impressora ou salve PDF"
+    },
+    {
+      "pergunta": "Como fazer uma venda no PDV?",
+      "resposta": "Frente de Caixa → Abrir Caixa → Clique nos produtos → Finalizar Venda (F4)"
+    }
+  ],
+  "saudacoes": {
+    "ola": "Olá! Sou o Assistente Virtual do TecOS. Como posso te ajudar?",
+    "ajuda": "Posso te ajudar com:\n• Ordens de Serviço\n• Orçamentos e Pagamentos\n• WhatsApp e Assinaturas\n• Clientes e PDV\n• Configurações\n\nDigite sua dúvida ou clique em uma opção!",
+    "naoEntendi": "Desculpe, não encontrei uma resposta para isso. Tente usar palavras como:\n• OS, ordem de serviço\n• Pagamento, PIX\n• WhatsApp, enviar\n• Cliente, cadastrar\n• PDV, venda\n\nOu clique em uma das sugestões abaixo!",
+    "default": "Como mais posso te ajudar?"
+  }
+}

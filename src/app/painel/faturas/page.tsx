@@ -10,7 +10,8 @@ import {
   Clock, 
   AlertCircle,
   ExternalLink,
-  Loader2 
+  Loader2,
+  Sparkles
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -51,6 +52,8 @@ export default function FaturasPage() {
   const [loading, setLoading] = useState(true)
   const [faturas, setFaturas] = useState<Fatura[]>([])
   const [contagem, setContagem] = useState<Record<string, number>>({})
+  const [gerandoId, setGerandoId] = useState<string | null>(null)
+  const [formaPagamentoSelecionada, setFormaPagamentoSelecionada] = useState<Record<string, string>>({})
 
   useEffect(() => {
     loadFaturas()
@@ -85,6 +88,41 @@ export default function FaturasPage() {
   const copiarPix = (codigo: string) => {
     navigator.clipboard.writeText(codigo)
     toast.success('Código PIX copiado!')
+  }
+
+  const gerarPagamento = async (faturaId: string, forma: 'pix' | 'boleto' | 'link') => {
+    setGerandoId(faturaId)
+    try {
+      const res = await fetch('/api/cobranca/gerar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ faturaId, formaPagamento: forma })
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        toast.success('Pagamento gerado com sucesso!')
+        // Atualizar a fatura na lista
+        setFaturas(prev => prev.map(f => 
+          f.id === faturaId 
+            ? { 
+                ...f, 
+                codigoPix: data.fatura.codigoPix,
+                qrCodePix: data.fatura.qrCodePix,
+                linkBoleto: data.fatura.linkBoleto,
+                codigoBoleto: data.fatura.codigoBoleto,
+                linkPagamento: data.fatura.linkPagamento
+              }
+            : f
+        ))
+      } else {
+        toast.error(data.error || 'Erro ao gerar pagamento')
+      }
+    } catch {
+      toast.error('Erro ao gerar pagamento')
+    } finally {
+      setGerandoId(null)
+    }
   }
 
   const faturasPendentes = faturas.filter(f => f.status === 'pendente' || f.status === 'vencida')
@@ -184,47 +222,110 @@ export default function FaturasPage() {
 
                 {/* Opções de Pagamento */}
                 <div className="border-t pt-4 space-y-3">
-                  {/* Link de Pagamento */}
-                  {fatura.linkPagamento && (
-                    <Button
-                      className="w-full bg-emerald-600 hover:bg-emerald-700"
-                      onClick={() => window.open(fatura.linkPagamento!, '_blank')}
-                    >
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Pagar Agora
-                    </Button>
-                  )}
-
-                  {/* PIX */}
-                  {fatura.codigoPix && (
-                    <div className="bg-slate-50 p-4 rounded-lg space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Código PIX</span>
+                  {/* Se não tem pagamento gerado, mostrar botões para gerar */}
+                  {!fatura.linkPagamento && !fatura.codigoPix && !fatura.linkBoleto ? (
+                    <div className="space-y-3">
+                      <p className="text-sm text-slate-500 text-center">
+                        Clique para gerar o pagamento:
+                      </p>
+                      <div className="grid grid-cols-3 gap-2">
                         <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copiarPix(fatura.codigoPix!)}
+                          variant="outline"
+                          className="flex flex-col h-auto py-3"
+                          onClick={() => gerarPagamento(fatura.id, 'pix')}
+                          disabled={gerandoId === fatura.id}
                         >
-                          <Copy className="w-4 h-4 mr-1" />
-                          Copiar
+                          {gerandoId === fatura.id ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <QrCode className="w-5 h-5 text-emerald-600" />
+                          )}
+                          <span className="text-xs mt-1">PIX</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="flex flex-col h-auto py-3"
+                          onClick={() => gerarPagamento(fatura.id, 'boleto')}
+                          disabled={gerandoId === fatura.id}
+                        >
+                          {gerandoId === fatura.id ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <FileText className="w-5 h-5 text-blue-600" />
+                          )}
+                          <span className="text-xs mt-1">Boleto</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="flex flex-col h-auto py-3"
+                          onClick={() => gerarPagamento(fatura.id, 'link')}
+                          disabled={gerandoId === fatura.id}
+                        >
+                          {gerandoId === fatura.id ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <CreditCard className="w-5 h-5 text-purple-600" />
+                          )}
+                          <span className="text-xs mt-1">Cartão</span>
                         </Button>
                       </div>
-                      <code className="text-xs break-all block">
-                        {fatura.codigoPix}
-                      </code>
                     </div>
-                  )}
+                  ) : (
+                    <>
+                      {/* Link de Pagamento */}
+                      {fatura.linkPagamento && (
+                        <Button
+                          className="w-full bg-emerald-600 hover:bg-emerald-700"
+                          onClick={() => window.open(fatura.linkPagamento!, '_blank')}
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Pagar Agora
+                        </Button>
+                      )}
 
-                  {/* Boleto */}
-                  {fatura.linkBoleto && (
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => window.open(fatura.linkBoleto!, '_blank')}
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      Ver Boleto
-                    </Button>
+                      {/* PIX */}
+                      {fatura.codigoPix && (
+                        <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">Código PIX</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copiarPix(fatura.codigoPix!)}
+                            >
+                              <Copy className="w-4 h-4 mr-1" />
+                              Copiar
+                            </Button>
+                          </div>
+                          <code className="text-xs break-all block">
+                            {fatura.codigoPix}
+                          </code>
+                        </div>
+                      )}
+
+                      {/* QR Code PIX */}
+                      {fatura.qrCodePix && (
+                        <div className="flex justify-center">
+                          <img 
+                            src={`data:image/png;base64,${fatura.qrCodePix}`}
+                            alt="QR Code PIX"
+                            className="w-48 h-48 rounded-lg"
+                          />
+                        </div>
+                      )}
+
+                      {/* Boleto */}
+                      {fatura.linkBoleto && (
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => window.open(fatura.linkBoleto!, '_blank')}
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          Ver Boleto
+                        </Button>
+                      )}
+                    </>
                   )}
                 </div>
               </CardContent>

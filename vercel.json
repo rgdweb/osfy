@@ -3,10 +3,6 @@
     {
       "path": "/api/cron/processar-faturas?secret=${CRON_SECRET}",
       "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/whatsapp/lembretes?secret=${CRON_SECRET}",
-      "schedule": "0 9,18 * * *"
     }
   ],
   "headers": [

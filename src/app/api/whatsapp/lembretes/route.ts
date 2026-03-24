@@ -2,23 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
 /**
- * CRON JOB: Enviar lembretes via WhatsApp
+ * CRON JOB: Enviar lembretes via WhatsApp Cloud API (Meta)
  * 
- * Deve ser chamado 2x ao dia (ex: 9h e 18h)
- * 
- * O que faz:
- * 1. Envia lembrete 3 dias antes do vencimento
- * 2. Envia lembrete diário quando vencida
- * 3. Respeita intervalo de 24h entre mensagens (dataLembrete)
- * 
- * Evolution API:
- * - Documentação: https://doc.evolution-api.com
- * - Endpoint: POST /message/sendText/{instance}
+ * GRATUITO: Até 1000 conversas/mês
+ * Documentação: https://developers.facebook.com/docs/whatsapp/cloud-api
  * 
  * Variáveis de ambiente necessárias:
- * - WHATSAPP_API_URL: URL da Evolution API (ex: http://localhost:8080)
- * - WHATSAPP_API_KEY: API Key da Evolution API
- * - WHATSAPP_INSTANCE: Nome da instância conectada
+ * - WHATSAPP_TOKEN: Token de acesso do Meta Business
+ * - WHATSAPP_PHONE_ID: ID do número de telefone Business
+ * 
+ * Importante: Usa templates aprovados no Meta Business
+ * Template inicial: "fatura_pendente" (precisa criar no Meta)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -34,19 +28,24 @@ export async function GET(request: NextRequest) {
     }
 
     // Verificar se WhatsApp está configurado
-    const whatsappUrl = process.env.WHATSAPP_API_URL
-    const whatsappKey = process.env.WHATSAPP_API_KEY
-    const whatsappInstance = process.env.WHATSAPP_INSTANCE
+    const whatsappToken = process.env.WHATSAPP_TOKEN
+    const whatsappPhoneId = process.env.WHATSAPP_PHONE_ID
 
-    if (!whatsappUrl || !whatsappKey || !whatsappInstance) {
+    if (!whatsappToken || !whatsappPhoneId) {
       return NextResponse.json({
         success: true,
-        mensagem: 'WhatsApp não configurado. Configure WHATSAPP_API_URL, WHATSAPP_API_KEY e WHATSAPP_INSTANCE.',
-        lembretesEnviados: 0
+        mensagem: 'WhatsApp não configurado. Configure WHATSAPP_TOKEN e WHATSAPP_PHONE_ID no Meta Business.',
+        lembretesEnviados: 0,
+        instrucoes: [
+          '1. Acesse: https://business.facebook.com',
+          '2. Vá em Configurações → WhatsApp → API Setup',
+          '3. Copie o Phone Number ID e Access Token',
+          '4. Configure nas variáveis de ambiente'
+        ]
       })
     }
 
-    console.log('[WhatsApp] Iniciando envio de lembretes...', new Date().toISOString())
+    console.log('[WhatsApp Cloud] Iniciando envio de lembretes...', new Date().toISOString())
 
     const resultados = {
       lembretesEnviados: 0,
@@ -58,11 +57,7 @@ export async function GET(request: NextRequest) {
 
     const hoje = new Date()
 
-    // ==========================================
-    // 1. BUSCAR FATURAS PENDENTES/VENCIDAS
-    // ==========================================
-
-    // Faturas vencidas ou vencendo nos próximos 3 dias
+    // Buscar faturas vencidas ou vencendo nos próximos 3 dias
     const dataLimite = new Date(hoje)
     dataLimite.setDate(dataLimite.getDate() + 3)
 
@@ -74,7 +69,7 @@ export async function GET(request: NextRequest) {
       include: { loja: true }
     })
 
-    console.log(`[WhatsApp] ${faturas.length} faturas encontradas para lembrete`)
+    console.log(`[WhatsApp Cloud] ${faturas.length} faturas encontradas`)
 
     for (const fatura of faturas) {
       try {
@@ -95,61 +90,6 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        // Calcular dias para vencer ou dias de atraso
-        const diffTime = new Date(fatura.dataVencimento).getTime() - hoje.getTime()
-        const diasDiff = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-        let mensagem: string
-        let tipoLembrete: string
-
-        if (diasDiff > 0) {
-          // Ainda não venceu
-          tipoLembrete = 'proximo_vencimento'
-          mensagem = `👋 Olá *${loja.nome}*!
-
-📅 Sua fatura vence em *${diasDiff} dia(s)*!
-
-💰 *Valor:* R$ ${fatura.valor.toFixed(2).replace('.', ',')}
-📆 *Vencimento:* ${new Date(fatura.dataVencimento).toLocaleDateString('pt-BR')}
-
-🔗 Para pagar, acesse:
-https://tec-os.vercel.app/painel/faturas
-
-_Parabéns por manter sua conta em dia!_
-
-💬 *TecOS - Sistema para Assistência Técnica*`
-        } else if (diasDiff === 0) {
-          // Vence hoje
-          tipoLembrete = 'vence_hoje'
-          mensagem = `⚠️ *ATENÇÃO ${loja.nome}!*
-
-📅 Sua fatura vence *HOJE*!
-
-💰 *Valor:* R$ ${fatura.valor.toFixed(2).replace('.', ',')}
-
-🔗 Pague agora para evitar bloqueio:
-https://tec-os.vercel.app/painel/faturas
-
-💬 *TecOS - Sistema para Assistência Técnica*`
-        } else {
-          // Já venceu
-          const diasAtraso = Math.abs(diasDiff)
-          tipoLembrete = 'vencida'
-          mensagem = `🚨 *FATURA VENCIDA* 🚨
-
-Olá *${loja.nome}*, sua fatura está vencida há *${diasAtraso} dia(s)*!
-
-💰 *Valor:* R$ ${fatura.valor.toFixed(2).replace('.', ',')}
-📅 *Venceu em:* ${new Date(fatura.dataVencimento).toLocaleDateString('pt-BR')}
-
-⚠️ *Atenção:* Após 7 dias de atraso, seu acesso será bloqueado.
-
-🔗 Regularize agora:
-https://tec-os.vercel.app/painel/faturas
-
-💬 *TecOS - Sistema para Assistência Técnica*`
-        }
-
         // Formatar telefone (apenas números, com código do Brasil)
         let telefone = (loja.whatsapp || loja.telefone || '').replace(/\D/g, '')
         
@@ -158,13 +98,23 @@ https://tec-os.vercel.app/painel/faturas
           telefone = '55' + telefone
         }
 
-        // Enviar mensagem via Evolution API
-        const enviado = await enviarMensagemWhatsApp(
-          whatsappUrl,
-          whatsappKey,
-          whatsappInstance,
+        // Calcular dias
+        const diffTime = new Date(fatura.dataVencimento).getTime() - hoje.getTime()
+        const diasDiff = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        const diasAtraso = diasDiff < 0 ? Math.abs(diasDiff) : 0
+
+        // Enviar mensagem via Cloud API
+        const enviado = await enviarWhatsAppCloudAPI(
+          whatsappPhoneId,
+          whatsappToken,
           telefone,
-          mensagem
+          {
+            nomeLoja: loja.nome,
+            valor: fatura.valor.toFixed(2).replace('.', ','),
+            vencimento: new Date(fatura.dataVencimento).toLocaleDateString('pt-BR'),
+            diasAtraso,
+            linkPagamento: 'https://tec-os.vercel.app/painel/faturas'
+          }
         )
 
         if (enviado.success) {
@@ -175,23 +125,23 @@ https://tec-os.vercel.app/painel/faturas
           })
 
           resultados.lembretesEnviados++
-          console.log(`[WhatsApp] Lembrete enviado: ${loja.nome} (${tipoLembrete})`)
+          console.log(`[WhatsApp Cloud] Enviado: ${loja.nome}`)
         } else {
           resultados.erroEnvio++
-          resultados.erros.push(`Erro ao enviar para ${loja.nome}: ${enviado.error}`)
+          resultados.erros.push(`Erro ${loja.nome}: ${enviado.error}`)
         }
 
-        // Aguardar 2 segundos entre envios para não ser bloqueado
+        // Aguardar 2 segundos entre envios
         await new Promise(resolve => setTimeout(resolve, 2000))
 
       } catch (error) {
-        const errorMsg = `Erro ao processar fatura ${fatura.id}: ${error}`
+        const errorMsg = `Erro fatura ${fatura.id}: ${error}`
         console.error(errorMsg)
         resultados.erros.push(errorMsg)
       }
     }
 
-    console.log('[WhatsApp] Processamento concluído:', resultados)
+    console.log('[WhatsApp Cloud] Concluído:', resultados)
 
     return NextResponse.json({
       success: true,
@@ -200,7 +150,7 @@ https://tec-os.vercel.app/painel/faturas
     })
 
   } catch (error) {
-    console.error('[WhatsApp] Erro fatal:', error)
+    console.error('[WhatsApp Cloud] Erro fatal:', error)
     return NextResponse.json(
       { 
         success: false, 
@@ -213,41 +163,78 @@ https://tec-os.vercel.app/painel/faturas
 }
 
 /**
- * Enviar mensagem via Evolution API
+ * Enviar mensagem via WhatsApp Cloud API
+ * 
+ * Usa template "hello_world" que já vem aprovado por padrão
+ * Para mensagens personalizadas, crie um template no Meta Business
  */
-async function enviarMensagemWhatsApp(
-  apiUrl: string,
-  apiKey: string,
-  instance: string,
+async function enviarWhatsAppCloudAPI(
+  phoneId: string,
+  token: string,
   telefone: string,
-  mensagem: string
+  dados: {
+    nomeLoja: string
+    valor: string
+    vencimento: string
+    diasAtraso: number
+    linkPagamento: string
+  }
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const url = `${apiUrl}/message/sendText/${instance}`
+    const url = `https://graph.facebook.com/v18.0/${phoneId}/messages`
     
+    // Usar template "hello_world" que já vem aprovado
+    // Para personalizar, crie um template no Meta Business
+    const body = {
+      messaging_product: 'whatsapp',
+      to: telefone,
+      type: 'template',
+      template: {
+        name: 'hello_world',
+        language: {
+          code: 'pt_BR'
+        }
+      }
+    }
+
+    // Se tiver template personalizado aprovado, use este formato:
+    // const body = {
+    //   messaging_product: 'whatsapp',
+    //   to: telefone,
+    //   type: 'template',
+    //   template: {
+    //     name: 'fatura_pendente', // Nome do seu template aprovado
+    //     language: { code: 'pt_BR' },
+    //     components: [
+    //       {
+    //         type: 'body',
+    //         parameters: [
+    //           { type: 'text', text: dados.nomeLoja },
+    //           { type: 'text', text: dados.valor },
+    //           { type: 'text', text: dados.vencimento },
+    //           { type: 'text', text: dados.diasAtraso.toString() },
+    //           { type: 'text', text: dados.linkPagamento }
+    //         ]
+    //       }
+    //     ]
+    //   }
+    // }
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'apikey': apiKey
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        number: telefone,
-        options: {
-          delay: 1200,
-          presence: 'composing'
-        },
-        textMessage: {
-          text: mensagem
-        }
-      })
+      body: JSON.stringify(body)
     })
 
+    const responseData = await response.json()
+
     if (!response.ok) {
-      const text = await response.text()
       return { 
         success: false, 
-        error: `HTTP ${response.status}: ${text.substring(0, 200)}` 
+        error: JSON.stringify(responseData) 
       }
     }
 

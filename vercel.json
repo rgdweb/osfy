@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/cron/processar-faturas?secret=${CRON_SECRET}",
+      "path": "/api/cron/processar-faturas",
       "schedule": "0 8 * * *"
     }
   ],

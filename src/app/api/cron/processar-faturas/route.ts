@@ -15,11 +15,15 @@ import { db } from '@/lib/db'
  */
 export async function GET(request: NextRequest) {
   try {
-    // Validar segredo
-    const { searchParams } = new URL(request.url)
-    const secret = searchParams.get('secret')
+    // Validar segredo - Vercel manda no header Authorization
+    const authHeader = request.headers.get('Authorization')
+    const urlSecret = new URL(request.url).searchParams.get('secret')
     
-    if (secret !== process.env.CRON_SECRET && process.env.CRON_SECRET) {
+    // Aceita tanto header (padrão Vercel) quanto URL (para testes manuais)
+    const isValidHeader = authHeader === `Bearer ${process.env.CRON_SECRET}`
+    const isValidUrl = urlSecret === process.env.CRON_SECRET
+    
+    if (process.env.CRON_SECRET && !isValidHeader && !isValidUrl) {
       return NextResponse.json(
         { success: false, error: 'Não autorizado' },
         { status: 401 }

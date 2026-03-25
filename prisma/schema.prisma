@@ -489,7 +489,7 @@ model Notificacao {
 model Avaliacao {
   id          String   @id @default(cuid())
   lojaId      String
-  osId        String   // OS que foi avaliada
+  osId        String   @unique  // OS que foi avaliada (única avaliação por OS)
   clienteId   String?  // Cliente que avaliou (opcional)
   
   // Avaliação
@@ -510,5 +510,4 @@ model Avaliacao {
   
   @@index([lojaId, aprovado])
   @@index([lojaId, criadoEm])
-  @@index([osId])
 }

@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/processar-faturas",
+      "schedule": "0 8 * * *"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+      ]
+    }
+  ]
+}

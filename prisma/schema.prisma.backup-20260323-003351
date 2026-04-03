@@ -1,0 +1,497 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model SuperAdmin {
+  id           String   @id @default(cuid())
+  nome         String
+  email        String   @unique
+  senhaHash    String
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+  sessoes      Sessao[]
+}
+
+model Loja {
+  id                 String         @id @default(cuid())
+  nome               String
+  slug               String         @unique
+  responsavel        String
+  cpfCnpj            String?        // CPF ou CNPJ
+  telefone           String
+  whatsapp           String
+  email              String         @unique
+  senhaHash          String
+  cidade             String
+  estado             String
+  endereco           String         // Logradouro (rua/avenida)
+  numeroEndereco     String?        @default("S/N") // Número do endereço
+  bairro             String?        // Bairro
+  cep                String?        // CEP (apenas números)
+  complemento        String?        // Complemento
+  descricao          String?
+  logo               String?
+  horarioAtendimento String?
+  tiposServico       String?
+  status             String         @default("pendente")
+  plano              String         @default("basico")
+  precoPlano         Float          @default(99.90)
+  criadoEm           DateTime       @default(now())
+  atualizadoEm       DateTime       @updatedAt
+  expiraEm           DateTime?
+  
+  // Sistema de Trial (7 dias grátis)
+  trialAte           DateTime?      // Data limite do período de trial
+  trialUsado         Boolean        @default(false)  // Se já usou o período de trial
+  
+  // Controle de bloqueio
+  bloqueado          Boolean        @default(false)  // Se a loja está bloqueada
+  motivoBloqueio     String?        // Motivo do bloqueio
+  
+  // Integração Mercado Pago
+  mpCustomerId       String?        // ID do customer no Mercado Pago
+
+  // OAuth Mercado Pago - Cada loja com sua própria conta
+  mpAccessToken      String?        // Access Token da loja (APP_USR-xxx)
+  mpRefreshToken     String?        // Refresh Token para renovar access token
+  mpPublicKey        String?        // Public Key da loja
+  mpUserId           String?        // ID do usuário MP conectado
+  mpTokenExpiresAt   DateTime?      // Data de expiração do access token
+  mpConectado        Boolean        @default(false) // Se a loja está conectada ao MP
+
+  clientes           Cliente[]
+  ordens             OrdemServico[]
+  usuarios           Usuario[]
+  categorias         Categoria[]
+  produtos           Produto[]
+  vendas             Venda[]
+  caixas             Caixa[]
+  faturas            Fatura[]
+  avaliacoes         Avaliacao[]
+  sessoes            Sessao[]
+}
+
+model Usuario {
+  id           String         @id @default(cuid())
+  lojaId       String
+  nome         String
+  email        String
+  senhaHash    String
+  foto         String?
+  tipo         String         @default("tecnico")
+  ativo        Boolean        @default(true)
+  criadoEm     DateTime       @default(now())
+  atualizadoEm DateTime       @updatedAt
+  ordens       OrdemServico[]
+  loja         Loja           @relation(fields: [lojaId], references: [id], onDelete: Cascade)
+  sessoes     Sessao[]
+
+  @@unique([lojaId, email])
+}
+
+model Cliente {
+  id           String         @id @default(cuid())
+  lojaId       String
+  nome         String
+  telefone     String
+  email        String?
+  cpf          String?
+  endereco     String?
+  criadoEm     DateTime       @default(now())
+  atualizadoEm DateTime       @updatedAt
+  loja         Loja           @relation(fields: [lojaId], references: [id], onDelete: Cascade)
+  ordens       OrdemServico[]
+
+  @@unique([lojaId, telefone])
+}
+
+model OrdemServico {
+  id              String        @id @default(cuid())
+  lojaId          String
+  clienteId       String
+  tecnicoId       String?
+  numeroOs        Int
+  codigoOs        String        @unique @default(cuid())  // Código único para assinatura (ex: A053219)
+  codigoAcesso    String?       @unique  // Campo antigo mantido para compatibilidade
+  equipamento     String
+  marca           String?
+  modelo          String?
+  imeiSerial      String?
+  senhaAparelho   String?
+  problema        String
+  acessorios      String?
+  estadoAparelho  String?
+  diagnostico     String?
+  solucao         String?
+  status          String        @default("recebido")
+  orcamento       Float?
+  aprovado        Boolean?
+  dataAprovacao   DateTime?
+  valorServico    Float?
+  valorPecas      Float?
+  valorTotal      Float?
+  pago            Boolean       @default(false)
+  formaPagamento  String?
+  dataPagamento   DateTime?
+  dataCriacao     DateTime      @default(now())
+  dataPrevisao    DateTime?
+  dataFinalizacao DateTime?
+  atualizadoEm    DateTime      @updatedAt
+  
+  // Dados de pagamento Mercado Pago
+  mpPaymentId           String?       // ID do pagamento no MP
+  mpPreferenceId        String?       // ID da preferência (link de pagamento)
+  linkPagamento         String?       // Link de pagamento (init_point)
+  pixQrCode             String?       // QR Code PIX em base64
+  pixCopiaCola          String?       // Código PIX copia e cola
+  boletoUrl             String?       // URL do boleto PDF
+  boletoLinhaDigitavel  String?       // Linha digitável do boleto
+  
+  assinatura      Assinatura?
+  fotos           FotoOS[]
+  historico       HistoricoOS[]
+  tecnico         Usuario?      @relation(fields: [tecnicoId], references: [id])
+  cliente         Cliente       @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  loja            Loja          @relation(fields: [lojaId], references: [id], onDelete: Cascade)
+
+  @@unique([lojaId, numeroOs])
+}
+
+model HistoricoOS {
+  id        String       @id @default(cuid())
+  osId      String
+  descricao String
+  status    String?
+  criadoEm  DateTime     @default(now())
+  ordem     OrdemServico @relation(fields: [osId], references: [id], onDelete: Cascade)
+}
+
+model FotoOS {
+  id        String       @id @default(cuid())
+  osId      String
+  arquivo   String
+  descricao String?
+  tipo      String       @default("recebimento")
+  criadoEm  DateTime     @default(now())
+  ordem     OrdemServico @relation(fields: [osId], references: [id], onDelete: Cascade)
+}
+
+model Assinatura {
+  id       String       @id @default(cuid())
+  osId     String       @unique
+  imagem   String
+  nome     String?
+  criadoEm DateTime     @default(now())
+  ordem    OrdemServico @relation(fields: [osId], references: [id], onDelete: Cascade)
+}
+
+model Configuracao {
+  id           String   @id @default(cuid())
+  chave        String   @unique
+  valor        String
+  descricao    String?
+  atualizadoEm DateTime @updatedAt
+
+  @@index([chave])
+}
+
+model ContadorOS {
+  id           String   @id @default(cuid())
+  lojaId       String   @unique
+  ultimoNumero Int      @default(0)
+  atualizadoEm DateTime @updatedAt
+}
+
+// ==================== PDV - Ponto de Venda ====================
+
+model Categoria {
+  id           String    @id @default(cuid())
+  lojaId       String
+  nome         String
+  descricao    String?
+  ativo        Boolean   @default(true)
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+  loja         Loja      @relation(fields: [lojaId], references: [id], onDelete: Cascade)
+  produtos     Produto[]
+
+  @@unique([lojaId, nome])
+}
+
+model Produto {
+  id              String    @id @default(cuid())
+  lojaId          String
+  categoriaId     String?
+  codigoBarras    String?   @unique
+  codigoInterno   String?
+  nome            String
+  descricao       String?
+  precoCusto      Float?
+  precoVenda      Float
+  estoque         Int       @default(0)
+  estoqueMinimo   Int       @default(0)
+  unidade         String    @default("UN")
+  localizacao     String?
+  ativo           Boolean   @default(true)
+  permiteVendaSemEstoque Boolean @default(true)
+  imagem          String?
+  criadoEm        DateTime  @default(now())
+  atualizadoEm    DateTime  @updatedAt
+  loja            Loja      @relation(fields: [lojaId], references: [id], onDelete: Cascade)
+  categoria       Categoria? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  itensVenda      ItemVenda[]
+
+  @@unique([lojaId, codigoInterno])
+  @@index([codigoBarras])
+}
+
+model Caixa {
+  id              String    @id @default(cuid())
+  lojaId          String
+  usuarioAbertura String
+  usuarioFechamento String?
+  saldoInicial    Float
+  saldoFinal      Float?
+  totalVendas     Float     @default(0)
+  totalDinheiro   Float     @default(0)
+  totalPix        Float     @default(0)
+  totalCartaoCredito Float  @default(0)
+  totalCartaoDebito Float  @default(0)
+  totalOutros     Float     @default(0)
+  totalSangrias   Float     @default(0)
+  totalReforcos   Float     @default(0)
+  status          String    @default("aberto")
+  observacaoAbertura String?
+  observacaoFechamento String?
+  dataAbertura    DateTime  @default(now())
+  dataFechamento  DateTime?
+  criadoEm        DateTime  @default(now())
+  atualizadoEm    DateTime  @updatedAt
+  loja            Loja      @relation(fields: [lojaId], references: [id], onDelete: Cascade)
+  vendas          Venda[]
+  movimentacoes   MovimentacaoCaixa[]
+
+  @@index([lojaId, status])
+}
+
+model Venda {
+  id              String    @id @default(cuid())
+  lojaId          String
+  caixaId         String
+  numeroVenda     Int
+  clienteNome     String?
+  clienteCpf      String?
+  subtotal        Float
+  desconto        Float     @default(0)
+  total           Float
+  formaPagamento  String
+  valorPago       Float?
+  troco           Float?
+  status          String    @default("concluida")
+  observacao      String?
+  tipo            String    @default("produto")
+  dataVenda       DateTime  @default(now())
+  criadoEm        DateTime  @default(now())
+  atualizadoEm    DateTime  @updatedAt
+  loja            Loja      @relation(fields: [lojaId], references: [id], onDelete: Cascade)
+  caixa           Caixa     @relation(fields: [caixaId], references: [id], onDelete: Cascade)
+  itens           ItemVenda[]
+
+  @@unique([lojaId, numeroVenda])
+  @@index([lojaId, dataVenda])
+}
+
+model ItemVenda {
+  id            String   @id @default(cuid())
+  vendaId       String
+  produtoId     String?
+  codigoBarras  String?
+  descricao     String
+  quantidade    Int
+  precoUnitario Float
+  desconto      Float    @default(0)
+  total         Float
+  tipo          String   @default("produto")
+  observacao    String?
+  criadoEm      DateTime @default(now())
+  venda         Venda    @relation(fields: [vendaId], references: [id], onDelete: Cascade)
+  produto       Produto? @relation(fields: [produtoId], references: [id], onDelete: SetNull)
+
+  @@index([vendaId])
+}
+
+model MovimentacaoCaixa {
+  id          String   @id @default(cuid())
+  caixaId     String
+  tipo        String
+  valor       Float
+  descricao   String
+  formaPagamento String?
+  criadoEm    DateTime @default(now())
+  caixa       Caixa    @relation(fields: [caixaId], references: [id], onDelete: Cascade)
+
+  @@index([caixaId])
+}
+
+// ==================== SESSÕES - Controle de Acesso ====================
+
+model Sessao {
+  id            String   @id @default(cuid())
+  lojaId        String?
+  usuarioId     String?
+  superAdminId  String?
+  
+  // Dados da sessão
+  tokenSessao   String   @unique  // Token único da sessão
+  userAgent      String?  // Navegador/dispositivo
+  ipAddress      String?  // IP do usuário
+  dispositivo    String?  // Nome identificador do dispositivo
+  
+  // Controle
+  ativa          Boolean  @default(true)
+  dataCriacao    DateTime  @default(now())
+  dataExpiracao  DateTime  // Quando a sessão expira
+  ultimoAcesso   DateTime  @default(now())
+  
+  // Relações
+  loja          Loja?      @relation(fields: [lojaId], references: [id], onDelete: Cascade)
+  usuario      Usuario?   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  superAdmin   SuperAdmin? @relation(fields: [superAdminId], references: [id], onDelete: Cascade)
+  
+  @@index([lojaId, ativa])
+  @@index([usuarioId, ativa])
+  @@index([superAdminId, ativa])
+  @@index([dataExpiracao])
+}
+
+
+// ==================== FATURAS - Sistema de Cobrança ====================
+
+model ConfiguracaoPagamento {
+  id                    String   @id @default(cuid())
+  
+  // Dados Mercado Pago
+  mpAccessToken         String?  // Access Token (APP_USR-xxx ou TEST-xxx)
+  mpPublicKey           String?  // Public Key
+  mpClientId            String?  // Client ID (para OAuth)
+  mpClientSecret        String?  // Client Secret (para OAuth)
+  mpAmbiente            String   @default("sandbox") // sandbox ou producao
+  mpWebhookSecret       String?  // Segredo para validar webhook
+  
+  // Dados do recebedor PIX (para PIX Estático)
+  chavePix              String?
+  tipoChavePix          String?
+  nomeRecebedor         String?
+  
+  // Configurações de cobrança
+  valorMensalidade      Float    @default(29.90)
+  valorAnuidade         Float    @default(290.00)
+  diaVencimento         Int      @default(10)
+  diasBloqueio          Int      @default(20)
+  diasTolerancia        Int      @default(3)
+  
+  // Controle
+  ativo                 Boolean  @default(false)
+  atualizadoEm          DateTime @updatedAt
+}
+
+model Fatura {
+  id             String    @id @default(cuid())
+  lojaId         String
+  numeroFatura   Int
+  valor          Float
+  status         String    @default("pendente")
+  formaPagamento String?
+  
+  // Dados Mercado Pago
+  mpPaymentId      String?   // ID do pagamento no MP
+  mpPreferenceId   String?   // ID da preferência no MP
+  
+  // PIX
+  codigoPix      String?
+  qrCodePix      String?
+  
+  // Boleto
+  linkBoleto     String?
+  codigoBoleto   String?
+  
+  // Link de pagamento
+  linkPagamento  String?
+  
+  // Datas
+  dataVencimento DateTime
+  dataPagamento  DateTime?
+  dataCriacao    DateTime  @default(now())
+  dataLembrete   DateTime?
+  atualizadoEm   DateTime  @updatedAt
+  
+  // Referência
+  referencia     String?
+  observacao     String?
+  
+  // Relação
+  loja           Loja      @relation(fields: [lojaId], references: [id], onDelete: Cascade)
+
+  @@unique([lojaId, numeroFatura])
+  @@index([lojaId, status])
+  @@index([lojaId, dataVencimento])
+  @@index([status, dataVencimento])
+}
+
+// ==================== NOTIFICAÇÕES ====================
+
+model Notificacao {
+  id            String   @id @default(cuid())
+  tipo          String   // aprovacao_orcamento, reprovacao_orcamento, nova_loja, mensalidade_atrasada, etc
+  titulo        String
+  mensagem      String
+  lida          Boolean  @default(false)
+  
+  // Referência opcional (ex: ID da OS, ID da loja)
+  referenciaId  String?
+  referenciaTipo String? // os, loja, fatura
+  
+  // Destinatário (pode ser para loja específica ou superadmin)
+  lojaId        String?  // null = para superadmin
+  usuarioId     String?  // usuário específico (opcional)
+  
+  criadoEm      DateTime @default(now())
+  
+  @@index([lojaId, lida])
+  @@index([tipo])
+  @@index([criadoEm])
+}
+
+// ==================== AVALIAÇÕES ====================
+
+model Avaliacao {
+  id          String   @id @default(cuid())
+  lojaId      String
+  osId        String   // OS que foi avaliada
+  clienteId   String?  // Cliente que avaliou (opcional)
+  
+  // Avaliação
+  nota        Int      // 1 a 5 estrelas
+  comentario  String?  // Comentário opcional
+  
+  // Resposta da loja
+  resposta    String?  // Resposta do dono da loja
+  dataResposta DateTime?
+  
+  // Controle
+  aprovado    Boolean  @default(true)  // Se foi aprovado para exibição
+  criadoEm    DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+  
+  // Relações
+  loja        Loja     @relation(fields: [lojaId], references: [id], onDelete: Cascade)
+  
+  @@index([lojaId, aprovado])
+  @@index([lojaId, criadoEm])
+  @@index([osId])
+}

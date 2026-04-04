@@ -584,27 +584,132 @@ export function OSDetailPage({ os }: OSDetailPageProps) {
     }
   }
 
-  // Enviar WhatsApp quando a OS fica pronta
-  const handleEnviarWhatsAppPronto = (valorTotalOS: number) => {
+  // Função para gerar mensagem de WhatsApp baseada no status
+  const gerarMensagemWhatsApp = (novoStatus: string, valorTotalOS: number) => {
     const linkOS = `${window.location.origin}/os/${os.id}`
-    const mensagem = `Olá ${os.cliente.nome}!
+    const telefone = os.cliente.telefone.replace(/\D/g, '')
+    
+    const mensagens: Record<string, string> = {
+      aguardando: `Olá ${os.cliente.nome}!
 
-Boa noticia! Seu equipamento esta PRONTO!
+Sua OS #${os.numeroOs} foi criada e está aguardando análise.
+
+Equipamento: ${os.equipamento}
+${os.marca ? `Marca: ${os.marca}` : ''}
+
+Acompanhe seu reparo em tempo real:
+${linkOS}
+
+${os.loja.nome}`,
+
+      em_analise: `Olá ${os.cliente.nome}!
+
+Seu equipamento está em análise técnica.
+
+OS #${os.numeroOs}
+Equipamento: ${os.equipamento}
+
+Em breve entraremos em contato com o diagnóstico.
+
+Acompanhe em:
+${linkOS}
+
+${os.loja.nome}`,
+
+      aguardando_aprovacao: `Olá ${os.cliente.nome}!
+
+🔍 Diagnóstico concluído!
+
+OS #${os.numeroOs}
+Equipamento: ${os.equipamento}
+
+${os.diagnostico ? `Diagnóstico: ${os.diagnostico}` : ''}
+${valorTotalOS > 0 ? `\n💰 Valor: ${formatCurrency(valorTotalOS)}` : ''}
+
+✅ Acesse o link para APROVAR ou RECUSAR:
+${linkOS}
+
+${os.loja.nome}`,
+
+      em_reparo: `Olá ${os.cliente.nome}!
+
+🔧 Seu equipamento está em reparo!
+
+OS #${os.numeroOs}
+Equipamento: ${os.equipamento}
+
+Estamos trabalhando para finalizar o mais rápido possível.
+
+Acompanhe o progresso:
+${linkOS}
+
+${os.loja.nome}`,
+
+      aguardando_pecas: `Olá ${os.cliente.nome}!
+
+📦 Aguardando peças para seu reparo.
+
+OS #${os.numeroOs}
+Equipamento: ${os.equipamento}
+
+Assim que as peças chegarem, iniciaremos o reparo.
+
+Acompanhe em:
+${linkOS}
+
+${os.loja.nome}`,
+
+      pronto: `Olá ${os.cliente.nome}!
+
+✅ Boa notícia! Seu equipamento está PRONTO!
 
 OS #${os.numeroOs}
 Equipamento: ${os.equipamento}
 ${os.marca ? `Marca: ${os.marca}` : ''}
 
-${valorTotalOS > 0 ? `Valor: ${formatCurrency(valorTotalOS)}` : ''}
-Retire na loja: ${os.loja.endereco || ''} ${os.loja.cidade ? `- ${os.loja.cidade}` : ''}
+${valorTotalOS > 0 ? `💰 Valor: ${formatCurrency(valorTotalOS)}` : ''}
+📍 Retire na loja: ${os.loja.endereco || ''} ${os.loja.cidade ? `- ${os.loja.cidade}` : ''}
 
-Acesse para mais detalhes:
+Mais detalhes:
 ${linkOS}
 
+${os.loja.nome}`,
+
+      entregue: `Olá ${os.cliente.nome}!
+
+🎉 Equipamento entregue com sucesso!
+
+OS #${os.numeroOs}
+Equipamento: ${os.equipamento}
+
+Obrigado pela confiança!
+
+Avalie nosso serviço:
+${linkOS}
+
+${os.loja.nome}`,
+
+      cancelado: `Olá ${os.cliente.nome}!
+
+Sua OS #${os.numeroOs} foi cancelada.
+
+Equipamento: ${os.equipamento}
+
+Se tiver dúvidas, entre em contato conosco.
+
 ${os.loja.nome}`
-    
-    const telefone = os.cliente.telefone.replace(/\D/g, '')
-    window.open(`https://wa.me/55${telefone}?text=${encodeURIComponent(mensagem)}`, '_blank')
+    }
+
+    return {
+      mensagem: mensagens[novoStatus] || mensagens.aguardando,
+      link: `https://wa.me/55${telefone}?text=${encodeURIComponent(mensagens[novoStatus] || mensagens.aguardando)}`
+    }
+  }
+
+  // Enviar WhatsApp quando a OS fica pronta (mantido para compatibilidade)
+  const handleEnviarWhatsAppPronto = (valorTotalOS: number) => {
+    const { link } = gerarMensagemWhatsApp('pronto', valorTotalOS)
+    window.open(link, '_blank')
   }
 
   const handleUpdateStatus = async () => {
@@ -621,17 +726,31 @@ ${os.loja.nome}`
       const data = await response.json()
 
       if (data.success) {
-        toast.success('Status atualizado com sucesso!')
+        // Calcula valor total para a mensagem
+        const valorTotalOS = (os.orcamento || 0) + (os.valorServico || 0) + (os.valorPecas || 0)
+        const { link } = gerarMensagemWhatsApp(status, valorTotalOS)
         
-        // Se status é "pronto", pergunta se quer avisar o cliente
-        if (status === 'pronto') {
-          const valorTotalOS = (os.orcamento || 0) + (os.valorServico || 0) + (os.valorPecas || 0)
-          if (confirm('Equipamento PRONTO! Deseja avisar o cliente via WhatsApp?')) {
-            handleEnviarWhatsAppPronto(valorTotalOS)
-          }
-        }
+        // Mostra toast com botão de WhatsApp para TODOS os status
+        toast.success(
+          <div className="flex flex-col gap-2">
+            <span className="font-medium">Status atualizado: {STATUS_LABELS[status as StatusOS]}</span>
+            <a 
+              href={link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-green-600 hover:text-green-700 font-medium text-sm"
+            >
+              <MessageCircle className="w-4 h-4" />
+              Enviar WhatsApp para cliente
+            </a>
+          </div>,
+          { duration: 15000 }
+        )
         
-        window.location.reload()
+        // Delay para dar tempo de clicar no WhatsApp antes de recarregar
+        setTimeout(() => {
+          window.location.reload()
+        }, 3000)
       } else {
         toast.error(data.error || 'Erro ao atualizar status')
       }

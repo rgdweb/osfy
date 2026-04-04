@@ -152,6 +152,11 @@ model OrdemServico {
   dataFinalizacao DateTime?
   atualizadoEm    DateTime      @updatedAt
   
+  // Sistema de Garantia
+  garantiaDias    Int?          // Dias de garantia para esta OS
+  garantiaInicio  DateTime?     // Data de início da garantia (data de entrega)
+  garantiaFim     DateTime?     // Data de fim da garantia (calculada)
+  
   // Dados de pagamento Mercado Pago (usado para mensalidades pelo Super Admin)
   mpPaymentId           String?       // ID do pagamento no MP
   mpPreferenceId        String?       // ID da preferência (link de pagamento)

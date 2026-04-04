@@ -533,6 +533,7 @@ export function OSDetailPage({ os }: OSDetailPageProps) {
   const [valorPecas, setValorPecas] = useState(os.valorPecas?.toString() || '')
   const [formaPagamento, setFormaPagamento] = useState(os.formaPagamento || '')
   const [pago, setPago] = useState(os.pago)
+  const [garantiaDias, setGarantiaDias] = useState(os.garantiaDias?.toString() || '90')
   const [fotos, setFotos] = useState<FotoOS[]>(os.fotos)
   const [uploadingFoto, setUploadingFoto] = useState(false)
   
@@ -800,7 +801,8 @@ ${os.loja.nome}`
           valorServico: parseFloat(valorServico) || null,
           valorPecas: parseFloat(valorPecas) || null,
           formaPagamento: formaPagamento || null,
-          pago
+          pago,
+          garantiaDias: parseInt(garantiaDias) || null
         })
       })
 
@@ -1145,6 +1147,52 @@ ${os.loja.nome}`
                     </label>
                   </div>
                 </div>
+              </div>
+
+              {/* Garantia */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-500" />
+                    Garantia (dias)
+                  </Label>
+                  <Select value={garantiaDias} onValueChange={setGarantiaDias}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30">30 dias</SelectItem>
+                      <SelectItem value="60">60 dias</SelectItem>
+                      <SelectItem value="90">90 dias (padrão)</SelectItem>
+                      <SelectItem value="120">120 dias</SelectItem>
+                      <SelectItem value="180">180 dias (6 meses)</SelectItem>
+                      <SelectItem value="365">365 dias (1 ano)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Mostrar data de validade da garantia se a OS estiver entregue */}
+                {os.status === 'entregue' && os.garantiaFim && (
+                  <div className="space-y-2">
+                    <Label>Validade da Garantia</Label>
+                    <div className={`p-3 rounded-lg ${
+                      new Date(os.garantiaFim) > new Date() 
+                        ? 'bg-green-50 border border-green-200' 
+                        : 'bg-red-50 border border-red-200'
+                    }`}>
+                      <p className={`font-medium ${
+                        new Date(os.garantiaFim) > new Date() 
+                          ? 'text-green-700' 
+                          : 'text-red-700'
+                      }`}>
+                        {new Date(os.garantiaFim) > new Date() ? '✓ Garantia válida até' : '✗ Garantia vencida em'}
+                      </p>
+                      <p className="text-lg font-bold">
+                        {formatDate(os.garantiaFim)}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Total */}

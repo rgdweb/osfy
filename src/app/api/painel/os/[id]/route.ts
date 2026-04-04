@@ -39,9 +39,20 @@ export async function PATCH(request: NextRequest, { params }: Props) {
     if (body.status && body.status !== osExistente.status) {
       updateData.status = body.status
       
-      // Se status for "entregue", finalizar OS
+      // Se status for "entregue", finalizar OS e calcular garantia
       if (body.status === 'entregue') {
         updateData.dataFinalizacao = new Date()
+        
+        // Calcular data de fim da garantia
+        const diasGarantia = body.garantiaDias || osExistente.garantiaDias || 90
+        const dataFimGarantia = new Date()
+        dataFimGarantia.setDate(dataFimGarantia.getDate() + diasGarantia)
+        
+        updateData.garantiaInicio = new Date()
+        updateData.garantiaFim = dataFimGarantia
+        if (!osExistente.garantiaDias) {
+          updateData.garantiaDias = diasGarantia
+        }
       }
       
       // Se status for "pronto" e tiver valor total, marcar como pago
@@ -69,6 +80,10 @@ export async function PATCH(request: NextRequest, { params }: Props) {
 
     if (body.valorPecas !== undefined) {
       updateData.valorPecas = body.valorPecas ? parseFloat(body.valorPecas) : null
+    }
+
+    if (body.garantiaDias !== undefined) {
+      updateData.garantiaDias = body.garantiaDias ? parseInt(body.garantiaDias) : null
     }
 
     // Calcular valorTotal se algum valor foi atualizado

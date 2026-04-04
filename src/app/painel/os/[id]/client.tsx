@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
@@ -21,7 +21,8 @@ import {
   Trash2,
   X,
   Key,
-  AlertTriangle
+  AlertTriangle,
+  Send
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -556,6 +557,39 @@ export function OSDetailPage({ os }: OSDetailPageProps) {
     valorTotal?: number
   } | null>(null)
 
+  // Estado para popup de WhatsApp após mudança de status
+  const [showWhatsAppPopup, setShowWhatsAppPopup] = useState(false)
+  const [whatsappData, setWhatsappData] = useState<{
+    status: string
+    link: string
+    mensagem: string
+  } | null>(null)
+
+  // Verificar se houve mudança de status recente ao carregar
+  useEffect(() => {
+    const storageKey = `os_status_change_${os.id}`
+    const savedData = sessionStorage.getItem(storageKey)
+    
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData)
+        // Só mostra se foi há menos de 30 segundos
+        if (parsed.timestamp && (Date.now() - parsed.timestamp < 30000)) {
+          setWhatsappData({
+            status: parsed.status,
+            link: parsed.link,
+            mensagem: parsed.mensagem
+          })
+          setShowWhatsAppPopup(true)
+        }
+        // Limpa o sessionStorage
+        sessionStorage.removeItem(storageKey)
+      } catch (e) {
+        console.error('Erro ao recuperar dados do status:', e)
+      }
+    }
+  }, [os.id])
+
   const handlePrint = async () => {
     await imprimirOS(os)
   }
@@ -728,29 +762,21 @@ ${os.loja.nome}`
       if (data.success) {
         // Calcula valor total para a mensagem
         const valorTotalOS = (os.orcamento || 0) + (os.valorServico || 0) + (os.valorPecas || 0)
-        const { link } = gerarMensagemWhatsApp(status, valorTotalOS)
+        const { link, mensagem } = gerarMensagemWhatsApp(status, valorTotalOS)
         
-        // Mostra toast com botão de WhatsApp para TODOS os status
-        toast.success(
-          <div className="flex flex-col gap-2">
-            <span className="font-medium">Status atualizado: {STATUS_LABELS[status as StatusOS]}</span>
-            <a 
-              href={link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-green-600 hover:text-green-700 font-medium text-sm"
-            >
-              <MessageCircle className="w-4 h-4" />
-              Enviar WhatsApp para cliente
-            </a>
-          </div>,
-          { duration: 15000 }
-        )
+        // Salva no sessionStorage para mostrar popup após reload
+        const storageKey = `os_status_change_${os.id}`
+        sessionStorage.setItem(storageKey, JSON.stringify({
+          status,
+          link,
+          mensagem,
+          timestamp: Date.now()
+        }))
         
-        // Delay para dar tempo de clicar no WhatsApp antes de recarregar
-        setTimeout(() => {
-          window.location.reload()
-        }, 3000)
+        toast.success('Status atualizado com sucesso!')
+        
+        // Recarrega a página - o popup vai aparecer automaticamente
+        window.location.reload()
       } else {
         toast.error(data.error || 'Erro ao atualizar status')
       }
@@ -1523,6 +1549,63 @@ ${os.loja.nome}`
               disabled={deleting}
             >
               {deleting ? 'Excluindo...' : 'Excluir OS'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de WhatsApp - Aparece após mudança de status */}
+      <Dialog open={showWhatsAppPopup} onOpenChange={setShowWhatsAppPopup}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-600">
+              <MessageCircle className="w-5 h-5" />
+              Avisar Cliente via WhatsApp
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="p-3 bg-emerald-50 rounded-lg">
+              <p className="text-sm text-emerald-700 font-medium">
+                Status atualizado para:
+              </p>
+              <p className="text-lg font-bold text-emerald-800 mt-1">
+                {whatsappData?.status && STATUS_LABELS[whatsappData.status as StatusOS]}
+              </p>
+            </div>
+            
+            <div className="p-3 bg-slate-50 rounded-lg">
+              <p className="text-xs text-slate-500 mb-2">Mensagem que será enviada:</p>
+              <p className="text-sm text-slate-700 whitespace-pre-line max-h-40 overflow-y-auto">
+                {whatsappData?.mensagem}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <User className="w-4 h-4" />
+              <span>{os.cliente.nome}</span>
+              <span className="text-slate-400">•</span>
+              <span>{os.cliente.telefone}</span>
+            </div>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowWhatsAppPopup(false)}
+              className="w-full sm:w-auto"
+            >
+              Agora não
+            </Button>
+            <Button 
+              className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
+              onClick={() => {
+                if (whatsappData?.link) {
+                  window.open(whatsappData.link, '_blank')
+                }
+                setShowWhatsAppPopup(false)
+              }}
+            >
+              <Send className="w-4 h-4 mr-2" />
+              Enviar WhatsApp
             </Button>
           </DialogFooter>
         </DialogContent>

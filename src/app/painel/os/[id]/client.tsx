@@ -102,27 +102,26 @@ const FORMAS_PAGAMENTO = [
 ]
 
 // Função para imprimir a OS em duas vias (A4 Paisagem)
-const imprimirOS = async (os: OSDetailPageProps['os']) => {
+const imprimirOS = async (os: OSDetailPageProps['os'], qrCodeBase64?: string) => {
   // Soma todos os valores: orçamento + serviço + peças
   const valorTotal = (os.orcamento || 0) + (os.valorServico || 0) + (os.valorPecas || 0)
   
-  // Gerar QR Code para acompanhamento da OS
-  const linkAcompanhamento = `https://tec-os.vercel.app/os/${os.id}`
-  let qrCodeBase64 = ''
-  
-  try {
-    // Importar dinamicamente a biblioteca qrcode
-    const QRCode = (await import('qrcode')).default
-    qrCodeBase64 = await QRCode.toDataURL(linkAcompanhamento, {
-      width: 80,
-      margin: 1,
-      color: {
-        dark: '#000000',
-        light: '#ffffff'
-      }
-    })
-  } catch (error) {
-    console.error('Erro ao gerar QR Code:', error)
+  // Se não recebeu QR Code, gerar um novo
+  if (!qrCodeBase64) {
+    try {
+      const QRCode = (await import('qrcode')).default
+      const link = typeof window !== 'undefined' ? window.location.origin : 'https://tec-os.vercel.app'
+      qrCodeBase64 = await QRCode.toDataURL(`${link}/os/${os.id}`, {
+        width: 80,
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#ffffff'
+        }
+      })
+    } catch (error) {
+      console.error('Erro ao gerar QR Code:', error)
+    }
   }
   
   const conteudo = `
@@ -621,7 +620,7 @@ export function OSDetailPage({ os }: OSDetailPageProps) {
   }, [os.id])
 
   const handlePrint = async () => {
-    await imprimirOS(os)
+    await imprimirOS(os, qrCodeUrl)
   }
 
   // Atualizar CPF do cliente

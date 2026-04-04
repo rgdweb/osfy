@@ -127,27 +127,26 @@ const FORMAS_PAGAMENTO: Record<string, string> = {
 }
 
 // Função para imprimir a OS (1 via - recibo para o cliente)
-const imprimirOS = async (os: OSPageClientProps['os']) => {
+const imprimirOS = async (os: OSPageClientProps['os'], qrCodeBase64?: string) => {
   // Soma todos os valores: orçamento + serviço + peças
   const valorTotal = (os.orcamento || 0) + (os.valorServico || 0) + (os.valorPecas || 0)
   
-  // Gerar QR Code para acompanhamento da OS
-  const linkAcompanhamento = `https://tec-os.vercel.app/os/${os.id}`
-  let qrCodeBase64 = ''
-  
-  try {
-    // Importar dinamicamente a biblioteca qrcode
-    const QRCode = (await import('qrcode')).default
-    qrCodeBase64 = await QRCode.toDataURL(linkAcompanhamento, {
-      width: 120,
-      margin: 1,
-      color: {
-        dark: '#000000',
-        light: '#ffffff'
-      }
-    })
-  } catch (error) {
-    console.error('Erro ao gerar QR Code:', error)
+  // Se não recebeu QR Code, gerar um novo
+  if (!qrCodeBase64) {
+    try {
+      const QRCode = (await import('qrcode')).default
+      const link = typeof window !== 'undefined' ? window.location.origin : 'https://tec-os.vercel.app'
+      qrCodeBase64 = await QRCode.toDataURL(`${link}/os/${os.id}`, {
+        width: 100,
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#ffffff'
+        }
+      })
+    } catch (error) {
+      console.error('Erro ao gerar QR Code:', error)
+    }
   }
   
   const conteudo = `
@@ -470,7 +469,32 @@ export function OSPageClient({ os }: OSPageClientProps) {
     comentario: string | null
   } | null>(null)
   
+  // Estado para QR Code gerado localmente
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>('')
+  
   const currentStatusIndex = STATUS_ORDER.indexOf(os.status as StatusOS)
+
+  // Gerar QR Code quando o componente montar
+  useEffect(() => {
+    const gerarQRCode = async () => {
+      try {
+        const QRCode = (await import('qrcode')).default
+        const link = `${window.location.origin}/os/${os.id}`
+        const qr = await QRCode.toDataURL(link, {
+          width: 100,
+          margin: 1,
+          color: {
+            dark: '#000000',
+            light: '#ffffff'
+          }
+        })
+        setQrCodeUrl(qr)
+      } catch (error) {
+        console.error('Erro ao gerar QR Code:', error)
+      }
+    }
+    gerarQRCode()
+  }, [os.id])
 
   // Buscar avaliação existente ao carregar
   useEffect(() => {
@@ -567,7 +591,7 @@ export function OSPageClient({ os }: OSPageClientProps) {
   }
 
   const handleImprimirEtiqueta = async () => {
-    await imprimirOS(os)
+    await imprimirOS(os, qrCodeUrl)
   }
 
   // Função para copiar código PIX

@@ -1,25 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { auth } from '@clerk/nextjs/server'
+import { getCurrentUser } from '@/lib/auth/auth'
+import { db } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    if (!userId) {
-      return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 })
+    const user = await getCurrentUser()
+
+    if (!user || !user.lojaId) {
+      return NextResponse.json(
+        { sucesso: false, erro: 'Não autorizado' },
+        { status: 401 }
+      )
     }
 
-    // Buscar a loja do usuário
-    const usuario = await prisma.usuario.findUnique({
-      where: { clerkId: userId },
-      select: { lojaId: true, loja: { select: { nome: true } } }
-    })
-
-    if (!usuario?.lojaId) {
-      return NextResponse.json({ erro: 'Loja não encontrada' }, { status: 404 })
-    }
-
-    const lojaId = usuario.lojaId
+    const lojaId = user.lojaId
     const { searchParams } = new URL(request.url)
     const periodo = searchParams.get('periodo') || 'mes'
 
@@ -47,7 +41,7 @@ export async function GET(request: NextRequest) {
     dataInicio.setHours(0, 0, 0, 0)
 
     // Buscar OS do período
-    const osPeriodo = await prisma.ordemServico.findMany({
+    const osPeriodo = await db.ordemServico.findMany({
       where: {
         lojaId,
         dataCriacao: {
@@ -60,6 +54,12 @@ export async function GET(request: NextRequest) {
           select: { id: true, nome: true, telefone: true }
         }
       }
+    })
+
+    // Buscar nome da loja
+    const loja = await db.loja.findUnique({
+      where: { id: lojaId },
+      select: { nome: true }
     })
 
     // Calcular métricas
@@ -80,11 +80,11 @@ export async function GET(request: NextRequest) {
     const ticketMedio = osPagas.length > 0 ? faturamentoTotal / osPagas.length : 0
 
     // Tempo médio de reparo (dias entre criação e entrega)
-    const osEntreguesComData = osPeriodo.filter(os => os.status === 'entregue' && os.dataAtualizacao)
+    const osEntreguesComData = osPeriodo.filter(os => os.status === 'entregue' && os.atualizadoEm)
     let tempoMedioReparo = 0
     if (osEntreguesComData.length > 0) {
       const tempos = osEntreguesComData.map(os => {
-        const diff = new Date(os.dataAtualizacao!).getTime() - new Date(os.dataCriacao).getTime()
+        const diff = new Date(os.atualizadoEm!).getTime() - new Date(os.dataCriacao).getTime()
         return diff / (1000 * 60 * 60 * 24) // dias
       })
       tempoMedioReparo = tempos.reduce((a, b) => a + b, 0) / tempos.length
@@ -115,11 +115,11 @@ export async function GET(request: NextRequest) {
       fimMes.setDate(0)
       fimMes.setHours(23, 59, 59, 999)
 
-      const osMes = await prisma.ordemServico.findMany({
+      const osMes = await db.ordemServico.findMany({
         where: {
           lojaId,
           pago: true,
-          dataAtualizacao: {
+          atualizadoEm: {
             gte: inicioMes,
             lte: fimMes
           }
@@ -189,6 +189,29 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.count - a.count)
       .slice(0, 10)
 
+    // OS por dia (últimos 30 dias)
+    const osPorDia = []
+    for (let i = 29; i >= 0; i--) {
+      const dia = new Date()
+      dia.setDate(dia.getDate() - i)
+      dia.setHours(0, 0, 0, 0)
+      
+      const fimDia = new Date(dia)
+      fimDia.setHours(23, 59, 59, 999)
+
+      const count = osPeriodo.filter(os => {
+        const dataCriacao = new Date(os.dataCriacao)
+        return dataCriacao >= dia && dataCriacao <= fimDia
+      }).length
+
+      if (count > 0) {
+        osPorDia.push({
+          data: dia.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+          count
+        })
+      }
+    }
+
     return NextResponse.json({
       sucesso: true,
       periodo: {
@@ -196,7 +219,7 @@ export async function GET(request: NextRequest) {
         fim: hoje.toISOString()
       },
       loja: {
-        nome: usuario.loja?.nome || 'Loja'
+        nome: loja?.nome || 'Loja'
       },
       resumo: {
         totalOs,
@@ -208,7 +231,7 @@ export async function GET(request: NextRequest) {
         taxaConversao
       },
       osPorStatus,
-      osPorDia: [], // TODO: implementar se necessário
+      osPorDia,
       faturamentoPorMes,
       topClientes,
       equipamentosMaisReparados
@@ -217,7 +240,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Erro ao gerar relatório:', error)
     return NextResponse.json(
-      { erro: 'Erro interno do servidor' },
+      { sucesso: false, erro: 'Erro interno do servidor' },
       { status: 500 }
     )
   }

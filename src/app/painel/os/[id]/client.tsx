@@ -134,166 +134,170 @@ const imprimirOS = async (os: OSDetailPageProps['os']) => {
     * { margin: 0; padding: 0; box-sizing: border-box; }
     @page { 
       size: A4 landscape; 
-      margin: 5mm;
+      margin: 3mm;
     }
     body { 
       font-family: Arial, sans-serif; 
-      font-size: 11px; 
+      font-size: 10px; 
       display: flex;
       justify-content: center;
-      background: #f0f0f0;
-      padding: 5mm;
+      align-items: flex-start;
+      background: white;
       color: #000;
+      min-height: 100vh;
     }
     .container {
       display: flex;
-      gap: 8mm;
+      gap: 5mm;
       width: 100%;
-      max-width: 287mm;
+      height: 100%;
+      padding: 2mm;
     }
     .via {
       flex: 1;
       background: white;
-      padding: 5mm;
+      padding: 4mm;
       border: 2px solid #000;
       display: flex;
       flex-direction: column;
-      font-size: 11px;
+      font-size: 10px;
+      max-height: 190mm;
+      overflow: hidden;
     }
     .header {
       text-align: center;
-      border-bottom: 3px solid #000;
-      padding-bottom: 5px;
-      margin-bottom: 8px;
+      border-bottom: 2px solid #000;
+      padding-bottom: 4px;
+      margin-bottom: 6px;
     }
     .header-logo {
-      max-width: 100px;
-      max-height: 45px;
-      margin-bottom: 4px;
+      max-width: 80px;
+      max-height: 35px;
+      margin-bottom: 2px;
       object-fit: contain;
     }
-    .header h1 { font-size: 16px; color: #000; margin-bottom: 2px; font-weight: bold; }
-    .header p { color: #000; font-size: 10px; }
+    .header h1 { font-size: 14px; color: #000; margin-bottom: 1px; font-weight: bold; }
+    .header p { color: #000; font-size: 9px; }
     .via-titulo {
       text-align: center;
-      padding: 5px;
-      margin-bottom: 6px;
+      padding: 4px;
+      margin-bottom: 5px;
       border-radius: 3px;
       font-weight: bold;
-      font-size: 12px;
+      font-size: 11px;
     }
     .via-cliente { background: #000; color: #fff; }
     .via-loja { background: #333; color: #fff; }
     .os-numero {
       text-align: right;
-      font-size: 11px;
+      font-size: 10px;
       color: #000;
-      margin-bottom: 6px;
+      margin-bottom: 5px;
     }
-    .os-numero strong { font-size: 14px; color: #000; }
-    .section { margin-bottom: 6px; }
+    .os-numero strong { font-size: 12px; color: #000; }
+    .section { margin-bottom: 5px; }
     .section-title {
       background: #000;
       color: #fff;
-      padding: 3px 6px;
+      padding: 2px 5px;
       font-weight: bold;
       border-radius: 2px;
-      margin-bottom: 4px;
-      font-size: 10px;
+      margin-bottom: 3px;
+      font-size: 9px;
     }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-    .field { margin-bottom: 3px; }
-    .field-label { font-weight: bold; color: #000; font-size: 9px; text-transform: uppercase; }
-    .field-value { color: #000; font-size: 11px; font-weight: 600; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+    .field { margin-bottom: 2px; }
+    .field-label { font-weight: bold; color: #000; font-size: 8px; text-transform: uppercase; }
+    .field-value { color: #000; font-size: 10px; font-weight: 600; }
     .problema-box {
-      border: 2px solid #000;
-      padding: 5px;
-      border-radius: 3px;
+      border: 1px solid #000;
+      padding: 4px;
+      border-radius: 2px;
       background: #fff;
-      font-size: 11px;
-      line-height: 1.4;
+      font-size: 10px;
+      line-height: 1.3;
     }
-    .valores { margin-top: 6px; border-top: 2px solid #000; padding-top: 6px; }
-    .valor-linha { display: flex; justify-content: space-between; padding: 2px 0; font-size: 11px; }
-    .valor-total { font-weight: bold; font-size: 13px; border-top: 2px solid #000; padding-top: 4px; margin-top: 2px; }
+    .valores { margin-top: 5px; border-top: 1px solid #000; padding-top: 5px; }
+    .valor-linha { display: flex; justify-content: space-between; padding: 1px 0; font-size: 10px; }
+    .valor-total { font-weight: bold; font-size: 12px; border-top: 1px solid #000; padding-top: 3px; margin-top: 2px; }
     .status-badge {
       display: inline-block;
-      padding: 3px 10px;
-      border-radius: 12px;
+      padding: 2px 8px;
+      border-radius: 10px;
       font-weight: bold;
       text-transform: uppercase;
-      font-size: 10px;
-      border: 2px solid #000;
+      font-size: 9px;
+      border: 1px solid #000;
     }
     .pago-info {
-      margin-top: 4px;
-      padding: 4px;
-      border-radius: 3px;
-      font-size: 11px;
+      margin-top: 3px;
+      padding: 3px;
+      border-radius: 2px;
+      font-size: 10px;
       font-weight: bold;
       text-align: center;
-      border: 2px solid #000;
+      border: 1px solid #000;
     }
     .pago { background: #000; color: #fff; }
     .pendente { background: #fff; color: #000; }
     .assinatura-area {
       margin-top: auto;
-      border-top: 2px solid #000;
-      padding-top: 6px;
+      border-top: 1px solid #000;
+      padding-top: 5px;
       text-align: center;
     }
     .assinatura-linha {
-      margin-top: 20px;
+      margin-top: 15px;
       border-top: 1px solid #000;
       padding-top: 2px;
-      font-size: 10px;
+      font-size: 9px;
     }
     .assinatura-img {
-      max-height: 35px;
-      margin-bottom: 3px;
+      max-height: 30px;
+      margin-bottom: 2px;
     }
     .qrcode-box {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      margin-top: 6px;
-      padding: 6px;
-      border: 2px solid #000;
-      border-radius: 4px;
+      gap: 6px;
+      margin-top: 5px;
+      padding: 5px;
+      border: 1px solid #000;
+      border-radius: 3px;
       background: #fff;
     }
     .qrcode-img {
-      width: 60px;
-      height: 60px;
+      width: 50px;
+      height: 50px;
     }
     .qrcode-text {
       text-align: left;
-      font-size: 9px;
+      font-size: 8px;
       color: #000;
     }
-    .qrcode-text p { margin-bottom: 2px; }
+    .qrcode-text p { margin-bottom: 1px; }
     .codigo-box {
       display: inline-block;
       background: #000;
       color: #fff;
-      padding: 3px 8px;
-      border-radius: 3px;
+      padding: 2px 6px;
+      border-radius: 2px;
       font-weight: bold;
-      font-size: 11px;
+      font-size: 10px;
       letter-spacing: 1px;
     }
     .footer {
-      margin-top: 6px;
-      border-top: 2px solid #000;
-      padding-top: 4px;
-      font-size: 9px;
+      margin-top: 5px;
+      border-top: 1px solid #000;
+      padding-top: 3px;
+      font-size: 8px;
       color: #000;
       text-align: center;
     }
     @media print {
-      body { padding: 0; background: white; }
-      .container { border: none; max-width: none; }
+      body { background: white; min-height: auto; }
+      .container { border: none; padding: 0; }
     }
   </style>
 </head>
@@ -547,6 +551,31 @@ export function OSDetailPage({ os }: OSDetailPageProps) {
   // Estados para exclusão
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  // Estado para QR Code gerado localmente
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>('')
+
+  // Gerar QR Code quando o componente montar
+  useEffect(() => {
+    const gerarQRCode = async () => {
+      try {
+        const QRCode = (await import('qrcode')).default
+        const link = `${window.location.origin}/os/${os.id}`
+        const qr = await QRCode.toDataURL(link, {
+          width: 150,
+          margin: 1,
+          color: {
+            dark: '#000000',
+            light: '#ffffff'
+          }
+        })
+        setQrCodeUrl(qr)
+      } catch (error) {
+        console.error('Erro ao gerar QR Code:', error)
+      }
+    }
+    gerarQRCode()
+  }, [os.id])
   
   // Estados para pagamento online
   const [gerandoPagamento, setGerandoPagamento] = useState(false)
@@ -1534,11 +1563,17 @@ ${os.loja.nome}`
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center">
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : ''}/os/${os.id}`)}`}
-                alt="QR Code"
-                className="w-32 h-32"
-              />
+              {qrCodeUrl ? (
+                <img
+                  src={qrCodeUrl}
+                  alt="QR Code"
+                  className="w-32 h-32"
+                />
+              ) : (
+                <div className="w-32 h-32 bg-slate-100 rounded-lg flex items-center justify-center">
+                  <QrCode className="w-12 h-12 text-slate-300 animate-pulse" />
+                </div>
+              )}
               <p className="text-sm text-slate-500 mt-2">Escaneie para acessar a OS</p>
             </CardContent>
           </Card>

@@ -159,120 +159,123 @@ const imprimirOS = async (os: OSPageClientProps['os']) => {
     * { margin: 0; padding: 0; box-sizing: border-box; }
     @page { 
       size: A4; 
-      margin: 10mm;
+      margin: 5mm;
     }
     body { 
       font-family: Arial, sans-serif; 
-      font-size: 13px; 
+      font-size: 12px; 
       background: white;
       color: #000;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
     }
     .via {
       background: white;
-      padding: 5mm;
-      max-width: 190mm;
-      margin: 0 auto;
+      padding: 3mm;
+      max-width: 200mm;
+      width: 100%;
     }
     .header {
       text-align: center;
-      border-bottom: 3px solid #000;
-      padding-bottom: 12px;
-      margin-bottom: 15px;
+      border-bottom: 2px solid #000;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
     }
-    .header h1 { font-size: 22px; color: #000; margin-bottom: 5px; font-weight: bold; }
-    .header p { color: #000; font-size: 12px; }
+    .header h1 { font-size: 18px; color: #000; margin-bottom: 3px; font-weight: bold; }
+    .header p { color: #000; font-size: 11px; }
     .os-numero {
       text-align: right;
-      font-size: 13px;
+      font-size: 12px;
       color: #000;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
     }
-    .os-numero strong { font-size: 18px; color: #000; }
-    .section { margin-bottom: 12px; }
+    .os-numero strong { font-size: 16px; color: #000; }
+    .section { margin-bottom: 10px; }
     .section-title {
       background: #000;
       color: #fff;
-      padding: 8px 12px;
+      padding: 5px 10px;
       font-weight: bold;
-      border-radius: 4px;
-      margin-bottom: 8px;
-      font-size: 13px;
+      border-radius: 3px;
+      margin-bottom: 5px;
+      font-size: 11px;
     }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .field { margin-bottom: 6px; }
-    .field-label { font-weight: bold; color: #000; font-size: 11px; text-transform: uppercase; }
-    .field-value { color: #000; font-size: 13px; font-weight: 500; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .field { margin-bottom: 4px; }
+    .field-label { font-weight: bold; color: #000; font-size: 10px; text-transform: uppercase; }
+    .field-value { color: #000; font-size: 12px; font-weight: 500; }
     .problema-box {
-      border: 2px solid #000;
-      padding: 12px;
-      border-radius: 4px;
+      border: 1px solid #000;
+      padding: 8px;
+      border-radius: 3px;
       background: #fff;
-      font-size: 13px;
+      font-size: 12px;
     }
-    .valores { margin-top: 15px; border-top: 2px solid #000; padding-top: 12px; }
-    .valor-linha { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
-    .valor-total { font-weight: bold; font-size: 16px; border-top: 2px solid #000; padding-top: 8px; margin-top: 5px; }
+    .valores { margin-top: 10px; border-top: 1px solid #000; padding-top: 10px; }
+    .valor-linha { display: flex; justify-content: space-between; padding: 3px 0; font-size: 12px; }
+    .valor-total { font-weight: bold; font-size: 14px; border-top: 1px solid #000; padding-top: 5px; margin-top: 3px; }
     .status-badge {
       display: inline-block;
-      padding: 6px 18px;
-      border-radius: 20px;
+      padding: 4px 12px;
+      border-radius: 15px;
       font-weight: bold;
       text-transform: uppercase;
-      font-size: 12px;
-      border: 2px solid #000;
+      font-size: 11px;
+      border: 1px solid #000;
     }
     .pago-info {
-      margin-top: 8px;
-      padding: 10px;
-      border-radius: 4px;
-      font-size: 14px;
+      margin-top: 5px;
+      padding: 6px;
+      border-radius: 3px;
+      font-size: 12px;
       font-weight: bold;
       text-align: center;
-      border: 2px solid #000;
+      border: 1px solid #000;
     }
     .pago { background: #000; color: #fff; }
     .pendente { background: #fff; color: #000; }
     .assinatura-area {
-      margin-top: 30px;
-      border-top: 2px solid #000;
-      padding-top: 10px;
+      margin-top: 20px;
+      border-top: 1px solid #000;
+      padding-top: 8px;
       text-align: center;
     }
     .assinatura-linha {
-      margin-top: 40px;
+      margin-top: 25px;
       border-top: 1px solid #000;
-      padding-top: 5px;
-      font-size: 12px;
+      padding-top: 3px;
+      font-size: 11px;
     }
     .assinatura-img {
-      max-height: 60px;
-      margin-bottom: 10px;
+      max-height: 45px;
+      margin-bottom: 5px;
     }
     .qrcode-area {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 20px;
-      margin-top: 20px;
-      padding: 15px;
-      border: 2px solid #000;
-      border-radius: 8px;
+      gap: 15px;
+      margin-top: 15px;
+      padding: 10px;
+      border: 1px solid #000;
+      border-radius: 5px;
       background: #fff;
     }
     .qrcode-img {
-      width: 100px;
-      height: 100px;
+      width: 80px;
+      height: 80px;
     }
     .qrcode-text {
       text-align: left;
     }
-    .qrcode-text p { font-size: 11px; color: #000; margin-bottom: 4px; }
-    .qrcode-text strong { font-size: 13px; color: #000; }
+    .qrcode-text p { font-size: 10px; color: #000; margin-bottom: 3px; }
+    .qrcode-text strong { font-size: 12px; color: #000; }
     .footer {
-      margin-top: 20px;
-      border-top: 2px solid #000;
-      padding-top: 10px;
-      font-size: 11px;
+      margin-top: 15px;
+      border-top: 1px solid #000;
+      padding-top: 8px;
+      font-size: 10px;
       color: #000;
       text-align: center;
     }
@@ -280,12 +283,12 @@ const imprimirOS = async (os: OSPageClientProps['os']) => {
       display: inline-block;
       background: #000;
       color: #fff;
-      padding: 8px 16px;
-      border-radius: 4px;
+      padding: 5px 12px;
+      border-radius: 3px;
       font-weight: bold;
-      font-size: 14px;
-      letter-spacing: 2px;
-      margin-top: 10px;
+      font-size: 12px;
+      letter-spacing: 1px;
+      margin-top: 5px;
     }
     @media print {
       body { background: white; }

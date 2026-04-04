@@ -168,6 +168,10 @@ model OrdemServico {
   efiTxId               String?       // ID da transação PIX (txid)
   pagamentoGateway      String?       // Qual gateway foi usado: "mercadopago" ou "efi"
   
+  // Pesquisa de satisfação
+  pesquisaEnviada       Boolean       @default(false)  // Se já enviou pedido de avaliação
+  dataPesquisaEnviada   DateTime?     // Quando enviou a pesquisa
+  
   assinatura      Assinatura?
   fotos           FotoOS[]
   historico       HistoricoOS[]

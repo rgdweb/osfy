@@ -25,7 +25,8 @@ import {
   Copy,
   User,
   Lock,
-  Shield
+  Shield,
+  BarChart3
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -55,6 +56,7 @@ const menuItems = [
   { href: '/painel', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/painel/os', label: 'Ordens de Serviço', icon: Wrench },
   { href: '/painel/clientes', label: 'Clientes', icon: Users },
+  { href: '/painel/relatorios', label: 'Relatórios', icon: BarChart3 },
   { href: '/painel/faturas', label: 'Faturas', icon: CreditCard, sempreAcessivel: true },
   { href: '/painel/sessoes', label: 'Sessões', icon: Shield },
   { href: '/painel/configuracoes', label: 'Configurações', icon: Settings },

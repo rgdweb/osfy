@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     // Buscar a loja do usuário
     const usuario = await prisma.usuario.findUnique({
       where: { clerkId: userId },
-      select: { lojaId: true }
+      select: { lojaId: true, loja: { select: { nome: true } } }
     })
 
     if (!usuario?.lojaId) {
@@ -194,6 +194,9 @@ export async function GET(request: NextRequest) {
       periodo: {
         inicio: dataInicio.toISOString(),
         fim: hoje.toISOString()
+      },
+      loja: {
+        nome: usuario.loja?.nome || 'Loja'
       },
       resumo: {
         totalOs,

@@ -35,7 +35,9 @@ import {
   Star,
   Send,
   Loader2,
-  Zap
+  Zap,
+  Shield,
+  ShieldCheck
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -86,6 +88,10 @@ interface OSPageClientProps {
     efiPixCopiaCola?: string | null
     efiTxId?: string | null
     pagamentoGateway?: string | null
+    // Campos de garantia
+    garantiaDias?: number | null
+    garantiaInicio?: Date | string | null
+    garantiaFim?: Date | string | null
   }
 }
 
@@ -372,6 +378,25 @@ const imprimirOS = async (os: OSPageClientProps['os']) => {
       ${os.formaPagamento ? `<div class="valor-linha"><span>Forma de Pagamento:</span><span>${FORMAS_PAGAMENTO[os.formaPagamento] || os.formaPagamento}</span></div>` : ''}
       <div class="pago-info ${os.pago ? 'pago' : 'pendente'}">
         ${os.pago ? '✓ PAGO' : 'PENDENTE'}
+      </div>
+    </div>
+    ` : ''}
+    
+    ${os.garantiaDias && os.garantiaDias > 0 ? `
+    <div class="section" style="margin-top: 15px;">
+      <div class="section-title" style="background: #059669;">🛡️ GARANTIA</div>
+      <div style="padding: 12px; border: 2px solid #059669; border-radius: 4px; background: #ecfdf5;">
+        <p style="font-size: 16px; font-weight: bold; color: #059669; margin: 0;">
+          ${os.garantiaDias} dias de garantia
+        </p>
+        ${os.garantiaInicio && os.garantiaFim ? `
+        <p style="font-size: 12px; color: #047857; margin-top: 5px;">
+          Válida de ${formatDate(os.garantiaInicio)} até ${formatDate(os.garantiaFim)}
+        </p>
+        ` : ''}
+        <p style="font-size: 11px; color: #065f46; margin-top: 8px;">
+          A garantia cobre defeitos relacionados ao serviço realizado.
+        </p>
       </div>
     </div>
     ` : ''}
@@ -1321,6 +1346,41 @@ export function OSPageClient({ os }: OSPageClientProps) {
                   </Button>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Garantia */}
+        {os.garantiaDias && os.garantiaDias > 0 && os.status === 'entregue' && (
+          <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-white mb-6">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2 text-emerald-700">
+                <ShieldCheck className="w-5 h-5" />
+                Garantia do Serviço
+              </CardTitle>
+              <CardDescription className="text-emerald-600">
+                Seu reparo está garantido!
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col sm:flex-row gap-4 items-center">
+                <div className="flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-full">
+                  <Shield className="w-8 h-8 text-emerald-600" />
+                </div>
+                <div className="flex-1 text-center sm:text-left">
+                  <p className="text-2xl font-bold text-emerald-700">
+                    {os.garantiaDias} dias de garantia
+                  </p>
+                  {os.garantiaInicio && os.garantiaFim && (
+                    <p className="text-sm text-emerald-600 mt-1">
+                      Válida de {formatDate(os.garantiaInicio)} até {formatDate(os.garantiaFim)}
+                    </p>
+                  )}
+                  <p className="text-xs text-emerald-500 mt-2">
+                    A garantia cobre defeitos relacionados ao serviço realizado.
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}

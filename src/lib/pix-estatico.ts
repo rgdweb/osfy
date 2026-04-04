@@ -80,7 +80,7 @@ export function gerarPayloadPix(params: PixEstaticoParams): string {
 /**
  * Calcula CRC16-CCITT (padrão usado no PIX)
  */
-function calcularCRC16(str: string): string {
+export function calcularCRC16(str: string): string {
   let crc = 0xFFFF
   const polynomial = 0x1021
 

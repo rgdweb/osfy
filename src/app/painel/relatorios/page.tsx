@@ -19,12 +19,16 @@ import {
 } from '@/components/ui/select'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { STATUS_LABELS, STATUS_COLORS, type StatusOS } from '@/types'
+import { exportarRelatorioPDF, exportarRelatorioExcel } from '@/lib/export-utils'
 
 interface RelatorioData {
   sucesso: boolean
   periodo: {
     inicio: string
     fim: string
+  }
+  loja?: {
+    nome: string
   }
   resumo: {
     totalOs: number
@@ -74,13 +78,23 @@ export default function RelatoriosPage() {
   }
 
   const exportarPDF = async () => {
-    // TODO: Implementar exportação PDF
-    alert('Exportação PDF será implementada em breve!')
+    if (!data) return
+    try {
+      exportarRelatorioPDF(data)
+    } catch (err) {
+      console.error('Erro ao exportar PDF:', err)
+      alert('Erro ao exportar PDF')
+    }
   }
 
   const exportarExcel = async () => {
-    // TODO: Implementar exportação Excel
-    alert('Exportação Excel será implementada em breve!')
+    if (!data) return
+    try {
+      exportarRelatorioExcel(data)
+    } catch (err) {
+      console.error('Erro ao exportar Excel:', err)
+      alert('Erro ao exportar Excel')
+    }
   }
 
   if (loading) {
@@ -119,6 +133,11 @@ export default function RelatoriosPage() {
                 <SelectItem value="ano">Último Ano</SelectItem>
               </SelectContent>
             </Select>
+            
+            <Button variant="outline" onClick={exportarPDF}>
+              <Download className="w-4 h-4 mr-2" />
+              PDF
+            </Button>
             
             <Button variant="outline" onClick={exportarExcel}>
               <Download className="w-4 h-4 mr-2" />

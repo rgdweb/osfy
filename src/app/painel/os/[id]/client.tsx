@@ -101,9 +101,28 @@ const FORMAS_PAGAMENTO = [
 ]
 
 // Função para imprimir a OS em duas vias (A4 Paisagem)
-const imprimirOS = (os: OSDetailPageProps['os']) => {
+const imprimirOS = async (os: OSDetailPageProps['os']) => {
   // Soma todos os valores: orçamento + serviço + peças
   const valorTotal = (os.orcamento || 0) + (os.valorServico || 0) + (os.valorPecas || 0)
+  
+  // Gerar QR Code para acompanhamento da OS
+  const linkAcompanhamento = `https://tec-os.vercel.app/os/${os.id}`
+  let qrCodeBase64 = ''
+  
+  try {
+    // Importar dinamicamente a biblioteca qrcode
+    const QRCode = (await import('qrcode')).default
+    qrCodeBase64 = await QRCode.toDataURL(linkAcompanhamento, {
+      width: 80,
+      margin: 1,
+      color: {
+        dark: '#000000',
+        light: '#ffffff'
+      }
+    })
+  } catch (error) {
+    console.error('Erro ao gerar QR Code:', error)
+  }
   
   const conteudo = `
 <!DOCTYPE html>
@@ -123,6 +142,7 @@ const imprimirOS = (os: OSDetailPageProps['os']) => {
       justify-content: center;
       background: #f0f0f0;
       padding: 5mm;
+      color: #000;
     }
     .container {
       display: flex;
@@ -134,14 +154,14 @@ const imprimirOS = (os: OSDetailPageProps['os']) => {
       flex: 1;
       background: white;
       padding: 5mm;
-      border: 1px solid #ccc;
+      border: 2px solid #000;
       display: flex;
       flex-direction: column;
       font-size: 11px;
     }
     .header {
       text-align: center;
-      border-bottom: 2px solid #10b981;
+      border-bottom: 3px solid #000;
       padding-bottom: 5px;
       margin-bottom: 8px;
     }
@@ -151,8 +171,8 @@ const imprimirOS = (os: OSDetailPageProps['os']) => {
       margin-bottom: 4px;
       object-fit: contain;
     }
-    .header h1 { font-size: 16px; color: #10b981; margin-bottom: 2px; font-weight: bold; }
-    .header p { color: #666; font-size: 10px; }
+    .header h1 { font-size: 16px; color: #000; margin-bottom: 2px; font-weight: bold; }
+    .header p { color: #000; font-size: 10px; }
     .via-titulo {
       text-align: center;
       padding: 5px;
@@ -161,18 +181,19 @@ const imprimirOS = (os: OSDetailPageProps['os']) => {
       font-weight: bold;
       font-size: 12px;
     }
-    .via-cliente { background: #d1fae5; color: #065f46; }
-    .via-loja { background: #dbeafe; color: #1e40af; }
+    .via-cliente { background: #000; color: #fff; }
+    .via-loja { background: #333; color: #fff; }
     .os-numero {
       text-align: right;
-      font-size: 10px;
-      color: #666;
+      font-size: 11px;
+      color: #000;
       margin-bottom: 6px;
     }
-    .os-numero strong { font-size: 14px; color: #333; }
+    .os-numero strong { font-size: 14px; color: #000; }
     .section { margin-bottom: 6px; }
     .section-title {
-      background: #f3f4f6;
+      background: #000;
+      color: #fff;
       padding: 3px 6px;
       font-weight: bold;
       border-radius: 2px;
@@ -181,19 +202,19 @@ const imprimirOS = (os: OSDetailPageProps['os']) => {
     }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
     .field { margin-bottom: 3px; }
-    .field-label { font-weight: bold; color: #555; font-size: 9px; text-transform: uppercase; }
-    .field-value { color: #111; font-size: 11px; font-weight: 600; }
+    .field-label { font-weight: bold; color: #000; font-size: 9px; text-transform: uppercase; }
+    .field-value { color: #000; font-size: 11px; font-weight: 600; }
     .problema-box {
-      border: 1px solid #d1d5db;
+      border: 2px solid #000;
       padding: 5px;
       border-radius: 3px;
-      background: #fafafa;
+      background: #fff;
       font-size: 11px;
       line-height: 1.4;
     }
-    .valores { margin-top: 6px; border-top: 1px dashed #ccc; padding-top: 6px; }
+    .valores { margin-top: 6px; border-top: 2px solid #000; padding-top: 6px; }
     .valor-linha { display: flex; justify-content: space-between; padding: 2px 0; font-size: 11px; }
-    .valor-total { font-weight: bold; font-size: 13px; border-top: 2px solid #333; padding-top: 4px; margin-top: 2px; }
+    .valor-total { font-weight: bold; font-size: 13px; border-top: 2px solid #000; padding-top: 4px; margin-top: 2px; }
     .status-badge {
       display: inline-block;
       padding: 3px 10px;
@@ -201,6 +222,7 @@ const imprimirOS = (os: OSDetailPageProps['os']) => {
       font-weight: bold;
       text-transform: uppercase;
       font-size: 10px;
+      border: 2px solid #000;
     }
     .pago-info {
       margin-top: 4px;
@@ -209,18 +231,19 @@ const imprimirOS = (os: OSDetailPageProps['os']) => {
       font-size: 11px;
       font-weight: bold;
       text-align: center;
+      border: 2px solid #000;
     }
-    .pago { background: #d1fae5; color: #065f46; }
-    .pendente { background: #fef3c7; color: #92400e; }
+    .pago { background: #000; color: #fff; }
+    .pendente { background: #fff; color: #000; }
     .assinatura-area {
       margin-top: auto;
-      border-top: 1px solid #333;
+      border-top: 2px solid #000;
       padding-top: 6px;
       text-align: center;
     }
     .assinatura-linha {
       margin-top: 20px;
-      border-top: 1px solid #333;
+      border-top: 1px solid #000;
       padding-top: 2px;
       font-size: 10px;
     }
@@ -228,12 +251,43 @@ const imprimirOS = (os: OSDetailPageProps['os']) => {
       max-height: 35px;
       margin-bottom: 3px;
     }
+    .qrcode-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 6px;
+      padding: 6px;
+      border: 2px solid #000;
+      border-radius: 4px;
+      background: #fff;
+    }
+    .qrcode-img {
+      width: 60px;
+      height: 60px;
+    }
+    .qrcode-text {
+      text-align: left;
+      font-size: 9px;
+      color: #000;
+    }
+    .qrcode-text p { margin-bottom: 2px; }
+    .codigo-box {
+      display: inline-block;
+      background: #000;
+      color: #fff;
+      padding: 3px 8px;
+      border-radius: 3px;
+      font-weight: bold;
+      font-size: 11px;
+      letter-spacing: 1px;
+    }
     .footer {
       margin-top: 6px;
-      border-top: 1px solid #e5e7eb;
+      border-top: 2px solid #000;
       padding-top: 4px;
       font-size: 9px;
-      color: #666;
+      color: #000;
       text-align: center;
     }
     @media print {
@@ -246,7 +300,7 @@ const imprimirOS = (os: OSDetailPageProps['os']) => {
   <div class="container">
     <!-- VIA DO CLIENTE -->
     <div class="via">
-      <div class="via-titulo via-cliente">VIA DO CLIENTE</div>
+      <div class="via-titulo via-cliente">📱 VIA DO CLIENTE</div>
       <div class="header">
         ${os.loja.logo ? `<img src="${os.loja.logo}" class="header-logo" alt="Logo" />` : ''}
         <h1>${os.loja.nome}</h1>
@@ -256,7 +310,7 @@ const imprimirOS = (os: OSDetailPageProps['os']) => {
       
       <div class="os-numero">
         OS: <strong>#${os.numeroOs}</strong> | Data: ${formatDateTime(os.dataCriacao)}<br>
-        <span style="font-size: 10px; color: #10b981;">Código Assinatura: <strong>${os.codigoOs || ''}</strong></span>
+        <span style="font-size: 10px; font-weight: bold;">Código: <strong>${os.codigoOs || os.id.substring(0, 8).toUpperCase()}</strong></span>
       </div>
       
       <div class="section">
@@ -318,25 +372,36 @@ const imprimirOS = (os: OSDetailPageProps['os']) => {
         <div class="valor-linha valor-total"><span>TOTAL:</span><span>${formatCurrency(valorTotal)}</span></div>
         ${os.formaPagamento ? `<div class="valor-linha"><span>Forma Pgto:</span><span>${FORMAS_PAGAMENTO.find(f => f.value === os.formaPagamento)?.label || os.formaPagamento}</span></div>` : ''}
         <div class="pago-info ${os.pago ? 'pago' : 'pendente'}">
-          ${os.pago ? 'PAGO' : 'PENDENTE'}
+          ${os.pago ? '✓ PAGO' : 'PENDENTE'}
         </div>
       </div>
       ` : ''}
       
       <div class="assinatura-area">
-        <p style="font-size: 9px;">Assinatura do Cliente:</p>
+        <p style="font-size: 10px; font-weight: bold;">Assinatura do Cliente:</p>
         ${os.assinatura ? `<img src="${os.assinatura.imagem}" class="assinatura-img" alt="Assinatura" />` : ''}
         <div class="assinatura-linha">_________________________________</div>
       </div>
       
+      ${qrCodeBase64 ? `
+      <div class="qrcode-box">
+        <img src="${qrCodeBase64}" class="qrcode-img" alt="QR Code" />
+        <div class="qrcode-text">
+          <p><strong>📱 Escaneie para acompanhar</strong></p>
+          <p>sua OS em tempo real</p>
+          <p style="margin-top: 4px;">Código: <span class="codigo-box">${os.codigoOs || os.id.substring(0, 8).toUpperCase()}</span></p>
+        </div>
+      </div>
+      ` : ''}
+      
       <div class="footer">
-        <p>TecOS - Acompanhe sua OS em: https://tec-os.vercel.app/os/${os.id}</p>
+        <p><strong>TecOS</strong> - Sistema de Gestão de Ordens de Serviço</p>
       </div>
     </div>
     
     <!-- VIA DA LOJA -->
     <div class="via">
-      <div class="via-titulo via-loja">VIA DA LOJA</div>
+      <div class="via-titulo via-loja">📋 VIA DA LOJA</div>
       <div class="header">
         ${os.loja.logo ? `<img src="${os.loja.logo}" class="header-logo" alt="Logo" />` : ''}
         <h1>${os.loja.nome}</h1>
@@ -346,7 +411,7 @@ const imprimirOS = (os: OSDetailPageProps['os']) => {
       
       <div class="os-numero">
         OS: <strong>#${os.numeroOs}</strong> | Data: ${formatDateTime(os.dataCriacao)}<br>
-        <span style="font-size: 10px; color: #10b981;">Código Assinatura: <strong>${os.codigoOs || ''}</strong></span>
+        <span style="font-size: 10px; font-weight: bold;">Código Assinatura: <strong>${os.codigoOs || ''}</strong></span>
       </div>
       
       <div class="section">
@@ -429,18 +494,18 @@ const imprimirOS = (os: OSDetailPageProps['os']) => {
         <div class="valor-linha valor-total"><span>TOTAL:</span><span>${formatCurrency(valorTotal)}</span></div>
         ${os.formaPagamento ? `<div class="valor-linha"><span>Forma Pgto:</span><span>${FORMAS_PAGAMENTO.find(f => f.value === os.formaPagamento)?.label || os.formaPagamento}</span></div>` : ''}
         <div class="pago-info ${os.pago ? 'pago' : 'pendente'}">
-          ${os.pago ? 'PAGO' : 'PENDENTE'}
+          ${os.pago ? '✓ PAGO' : 'PENDENTE'}
         </div>
       </div>
       ` : ''}
       
       <div class="assinatura-area">
-        <p style="font-size: 9px;">Assinatura do Técnico:</p>
+        <p style="font-size: 10px; font-weight: bold;">Assinatura do Técnico:</p>
         <div class="assinatura-linha">_________________________________</div>
       </div>
       
       <div class="footer">
-        <p>TecOS - Sistema de Gestão de Ordens de Serviço</p>
+        <p><strong>TecOS</strong> - Sistema de Gestão de Ordens de Serviço</p>
       </div>
     </div>
   </div>
@@ -491,8 +556,8 @@ export function OSDetailPage({ os }: OSDetailPageProps) {
     valorTotal?: number
   } | null>(null)
 
-  const handlePrint = () => {
-    imprimirOS(os)
+  const handlePrint = async () => {
+    await imprimirOS(os)
   }
 
   // Atualizar CPF do cliente

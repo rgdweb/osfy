@@ -121,9 +121,28 @@ const FORMAS_PAGAMENTO: Record<string, string> = {
 }
 
 // Função para imprimir a OS (1 via - recibo para o cliente)
-const imprimirOS = (os: OSPageClientProps['os']) => {
+const imprimirOS = async (os: OSPageClientProps['os']) => {
   // Soma todos os valores: orçamento + serviço + peças
   const valorTotal = (os.orcamento || 0) + (os.valorServico || 0) + (os.valorPecas || 0)
+  
+  // Gerar QR Code para acompanhamento da OS
+  const linkAcompanhamento = `https://tec-os.vercel.app/os/${os.id}`
+  let qrCodeBase64 = ''
+  
+  try {
+    // Importar dinamicamente a biblioteca qrcode
+    const QRCode = (await import('qrcode')).default
+    qrCodeBase64 = await QRCode.toDataURL(linkAcompanhamento, {
+      width: 120,
+      margin: 1,
+      color: {
+        dark: '#000000',
+        light: '#ffffff'
+      }
+    })
+  } catch (error) {
+    console.error('Erro ao gerar QR Code:', error)
+  }
   
   const conteudo = `
 <!DOCTYPE html>
@@ -138,8 +157,9 @@ const imprimirOS = (os: OSPageClientProps['os']) => {
     }
     body { 
       font-family: Arial, sans-serif; 
-      font-size: 12px; 
+      font-size: 13px; 
       background: white;
+      color: #000;
     }
     .via {
       background: white;
@@ -149,86 +169,121 @@ const imprimirOS = (os: OSPageClientProps['os']) => {
     }
     .header {
       text-align: center;
-      border-bottom: 2px solid #10b981;
-      padding-bottom: 10px;
+      border-bottom: 3px solid #000;
+      padding-bottom: 12px;
       margin-bottom: 15px;
     }
-    .header h1 { font-size: 20px; color: #10b981; margin-bottom: 5px; }
-    .header p { color: #666; font-size: 11px; }
+    .header h1 { font-size: 22px; color: #000; margin-bottom: 5px; font-weight: bold; }
+    .header p { color: #000; font-size: 12px; }
     .os-numero {
       text-align: right;
-      font-size: 12px;
-      color: #666;
+      font-size: 13px;
+      color: #000;
       margin-bottom: 15px;
     }
-    .os-numero strong { font-size: 16px; color: #333; }
+    .os-numero strong { font-size: 18px; color: #000; }
     .section { margin-bottom: 12px; }
     .section-title {
-      background: #f3f4f6;
-      padding: 6px 10px;
+      background: #000;
+      color: #fff;
+      padding: 8px 12px;
       font-weight: bold;
       border-radius: 4px;
       margin-bottom: 8px;
-      font-size: 12px;
+      font-size: 13px;
     }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .field { margin-bottom: 6px; }
-    .field-label { font-weight: bold; color: #666; font-size: 10px; text-transform: uppercase; }
-    .field-value { color: #333; font-size: 12px; }
+    .field-label { font-weight: bold; color: #000; font-size: 11px; text-transform: uppercase; }
+    .field-value { color: #000; font-size: 13px; font-weight: 500; }
     .problema-box {
-      border: 1px solid #e5e7eb;
-      padding: 10px;
+      border: 2px solid #000;
+      padding: 12px;
       border-radius: 4px;
-      background: #fafafa;
-      font-size: 12px;
+      background: #fff;
+      font-size: 13px;
     }
-    .valores { margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 12px; }
-    .valor-linha { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; }
-    .valor-total { font-weight: bold; font-size: 14px; border-top: 2px solid #333; padding-top: 8px; margin-top: 5px; }
+    .valores { margin-top: 15px; border-top: 2px solid #000; padding-top: 12px; }
+    .valor-linha { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
+    .valor-total { font-weight: bold; font-size: 16px; border-top: 2px solid #000; padding-top: 8px; margin-top: 5px; }
     .status-badge {
       display: inline-block;
-      padding: 5px 15px;
+      padding: 6px 18px;
       border-radius: 20px;
       font-weight: bold;
       text-transform: uppercase;
-      font-size: 11px;
+      font-size: 12px;
+      border: 2px solid #000;
     }
     .pago-info {
       margin-top: 8px;
-      padding: 8px;
+      padding: 10px;
       border-radius: 4px;
-      font-size: 12px;
+      font-size: 14px;
       font-weight: bold;
       text-align: center;
+      border: 2px solid #000;
     }
-    .pago { background: #d1fae5; color: #065f46; }
-    .pendente { background: #fef3c7; color: #92400e; }
+    .pago { background: #000; color: #fff; }
+    .pendente { background: #fff; color: #000; }
     .assinatura-area {
       margin-top: 30px;
-      border-top: 1px solid #333;
+      border-top: 2px solid #000;
       padding-top: 10px;
       text-align: center;
     }
     .assinatura-linha {
       margin-top: 40px;
-      border-top: 1px solid #333;
+      border-top: 1px solid #000;
       padding-top: 5px;
-      font-size: 11px;
+      font-size: 12px;
     }
     .assinatura-img {
       max-height: 60px;
       margin-bottom: 10px;
     }
+    .qrcode-area {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 20px;
+      padding: 15px;
+      border: 2px solid #000;
+      border-radius: 8px;
+      background: #fff;
+    }
+    .qrcode-img {
+      width: 100px;
+      height: 100px;
+    }
+    .qrcode-text {
+      text-align: left;
+    }
+    .qrcode-text p { font-size: 11px; color: #000; margin-bottom: 4px; }
+    .qrcode-text strong { font-size: 13px; color: #000; }
     .footer {
       margin-top: 20px;
-      border-top: 1px solid #e5e7eb;
+      border-top: 2px solid #000;
       padding-top: 10px;
-      font-size: 10px;
-      color: #666;
+      font-size: 11px;
+      color: #000;
       text-align: center;
+    }
+    .codigo-os {
+      display: inline-block;
+      background: #000;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 14px;
+      letter-spacing: 2px;
+      margin-top: 10px;
     }
     @media print {
       body { background: white; }
+      .qrcode-area { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style>
 </head>
@@ -322,14 +377,27 @@ const imprimirOS = (os: OSPageClientProps['os']) => {
     ` : ''}
     
     <div class="assinatura-area">
-      <p style="font-size: 11px; margin-bottom: 10px;">Assinatura do Cliente:</p>
+      <p style="font-size: 12px; margin-bottom: 10px; font-weight: bold;">Assinatura do Cliente:</p>
       ${os.assinatura ? `<img src="${os.assinatura.imagem}" class="assinatura-img" alt="Assinatura" />` : ''}
       <div class="assinatura-linha">_________________________________</div>
     </div>
     
+    ${qrCodeBase64 ? `
+    <div class="qrcode-area">
+      <img src="${qrCodeBase64}" class="qrcode-img" alt="QR Code" />
+      <div class="qrcode-text">
+        <p><strong>📱 Escaneie o QR Code</strong></p>
+        <p>para acompanhar sua OS em tempo real</p>
+        <p style="margin-top: 8px;">ou acesse:</p>
+        <p><strong>tec-os.vercel.app/os</strong></p>
+        ${os.codigoOs ? `<div class="codigo-os">${os.codigoOs}</div>` : ''}
+      </div>
+    </div>
+    ` : ''}
+    
     <div class="footer">
-      <p>TecOS - Sistema de Gestão de Ordens de Serviço</p>
-      <p>Acompanhe sua OS em: https://tec-os.vercel.app/os/${os.id}</p>
+      <p><strong>TecOS</strong> - Sistema de Gestão de Ordens de Serviço</p>
+      <p>Código de Acesso: <strong>${os.codigoOs || os.id.substring(0, 8).toUpperCase()}</strong></p>
     </div>
   </div>
 </body>
@@ -470,8 +538,8 @@ export function OSPageClient({ os }: OSPageClientProps) {
     }
   }
 
-  const handleImprimirEtiqueta = () => {
-    imprimirOS(os)
+  const handleImprimirEtiqueta = async () => {
+    await imprimirOS(os)
   }
 
   // Função para copiar código PIX

@@ -34,8 +34,8 @@ export async function GET() {
     // Buscar configurações de pagamento
     const configPagamento = await db.configuracaoPagamento.findFirst()
     
-    const valorMensalidade = configPagamento?.valorMensalidade || 29.90
-    const valorAnuidade = configPagamento?.valorAnuidade || 290.00
+    const valorMensalidade = configPagamento?.valorMensalidade || 99.90
+    const valorAnuidade = configPagamento?.valorAnuidade || 999.00
     const diasBloqueio = configPagamento?.diasBloqueio || 20
 
     const agora = new Date()

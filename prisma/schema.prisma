@@ -405,8 +405,8 @@ model ConfiguracaoPagamento {
   nomeRecebedor         String?
   
   // Configurações de cobrança
-  valorMensalidade      Float    @default(29.90)
-  valorAnuidade         Float    @default(290.00)
+  valorMensalidade      Float    @default(99.90)
+  valorAnuidade         Float    @default(999.00)
   diaVencimento         Int      @default(10)
   diasBloqueio          Int      @default(20)
   diasTolerancia        Int      @default(3)

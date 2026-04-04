@@ -82,8 +82,13 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const valor = loja.precoPlano || 29.90
+    // Buscar valores configurados no painel do super admin
+    const configPagamento = await db.configuracaoPagamento.findFirst()
+    const valorMensalidade = configPagamento?.valorMensalidade || 99.90
+    const valorAnuidade = configPagamento?.valorAnuidade || 999.90
+    
     const tipoPlano = loja.plano || 'mensal'
+    const valor = tipoPlano === 'anual' ? valorAnuidade : valorMensalidade
     
     const descricao = tipoPlano === 'anual'
       ? `Plano Anual TecOS - ${loja.nome}`

@@ -43,8 +43,8 @@ export async function GET(request: NextRequest) {
     // Buscar configurações
     const config = await db.configuracaoPagamento.findFirst()
     const diaVencimento = config?.diaVencimento || 10
-    const valorMensalidade = config?.valorMensalidade || 29.90
-    const valorAnuidade = config?.valorAnuidade || 290.00
+    const valorMensalidade = config?.valorMensalidade || 99.90
+    const valorAnuidade = config?.valorAnuidade || 999.00
 
     // Data atual
     const hoje = new Date()

@@ -21,8 +21,8 @@ export async function GET() {
       config = await db.configuracaoPagamento.create({
         data: {
           mpAmbiente: 'sandbox',
-          valorMensalidade: 29.90,
-          valorAnuidade: 290.00,
+          valorMensalidade: 99.90,
+          valorAnuidade: 999.00,
           diaVencimento: 10,
           diasBloqueio: 20,
           diasTolerancia: 3,
@@ -76,8 +76,8 @@ export async function PUT(request: NextRequest) {
       nomeRecebedor: body.nomeRecebedor || null,
       
       // Configuracoes
-      valorMensalidade: parseFloat(body.valorMensalidade) || 29.90,
-      valorAnuidade: parseFloat(body.valorAnuidade) || 290.00,
+      valorMensalidade: parseFloat(body.valorMensalidade) || 99.90,
+      valorAnuidade: parseFloat(body.valorAnuidade) || 999.00,
       diaVencimento: parseInt(body.diaVencimento) || 10,
       diasBloqueio: parseInt(body.diasBloqueio) || 20,
       diasTolerancia: parseInt(body.diasTolerancia) || 3,

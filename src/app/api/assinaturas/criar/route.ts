@@ -54,7 +54,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Mercado Pago não configurado' }, { status: 400 })
     }
 
-    const valor = loja.precoPlano || 29.90
+    // Buscar configurações de pagamento para pegar os valores configurados
+    const configPagamento = await db.configuracaoPagamento.findFirst()
+    const valorMensalidade = configPagamento?.valorMensalidade || 99.90
+    const valorAnuidade = configPagamento?.valorAnuidade || 999.90
+    
+    // Usar valor do plano conforme configuração do super admin
+    const valor = loja.plano === 'anual' ? valorAnuidade : valorMensalidade
     
     // Criar assinatura no Mercado Pago
     const response = await fetch('https://api.mercadopago.com/preapproval', {

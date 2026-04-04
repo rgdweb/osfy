@@ -72,8 +72,8 @@ export async function POST(request: NextRequest) {
 
     // Definir valor
     const valor = tipoPlano === 'anual' 
-      ? (configPagamento.valorAnuidade || 290)
-      : (configPagamento.valorMensalidade || 29.90)
+      ? (configPagamento.valorAnuidade || 999)
+      : (configPagamento.valorMensalidade || 99.90)
 
     // Data de vencimento (5 dias a partir de hoje)
     const dataVencimento = new Date()

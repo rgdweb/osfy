@@ -12,7 +12,6 @@
 
 ### GitHub
 - **Repositório:** https://github.com/rgdweb/osfy
-- **Token de acesso:** ``
 - **Branch principal:** main
 - **Proprietário:** rgdweb
 

@@ -1,3 +1,8 @@
+/**
+ * Integração com Mercado Pago
+ * API Docs: https://www.mercadopago.com.br/developers/pt/docs
+ */
+
 import { db } from './db'
 
 // URLs base do Mercado Pago
@@ -6,59 +11,37 @@ const MP_URLS = {
   producao: 'https://api.mercadopago.com'
 }
 
-// Interfaces para resposta do Mercado Pago
-interface MPCustomer {
-  id: string
-  email: string
-  first_name: string
-  last_name: string
-  identification: {
-    type: string
-    number: string
-  }
-  date_created: string
+// Interface para configurações de pagamento
+interface ConfigPagamento {
+  mpAccessToken: string | null
+  mpPublicKey: string | null
+  mpAmbiente: string
 }
 
+// Interface para resposta da Preference
 interface MPPreference {
   id: string
   init_point: string
   sandbox_init_point: string
   external_reference: string
   items: MPItem[]
-  payer: MPPayer
+  payer?: MPPayer
+  payment_methods: {
+    excluded_payment_methods: { id: string }[]
+    excluded_payment_types: { id: string }[]
+    installments: number
+  }
   back_urls: {
     success: string
     failure: string
     pending: string
   }
+  auto_return: string
   notification_url: string
   date_created: string
-}
-
-interface MPPayment {
-  id: number
-  status: string
-  status_detail: string
-  payment_type: string
-  payment_method_id: string
-  transaction_amount: number
-  external_reference: string
-  date_created: string
-  date_approved?: string
-  payer: {
-    email: string
-    identification?: {
-      type: string
-      number: string
-    }
-  }
-  point_of_interaction?: {
-    transaction_data: {
-      qr_code: string
-      qr_code_base64: string
-      ticket_url: string
-    }
-  }
+  expires: boolean
+  expiration_date_from?: string
+  expiration_date_to?: string
 }
 
 interface MPItem {
@@ -71,46 +54,129 @@ interface MPItem {
 }
 
 interface MPPayer {
-  email: string
   name?: string
-  surname?: string
-  identification?: {
-    type: string
-    number: string
-  }
+  email?: string
   phone?: {
     area_code: string
     number: string
   }
 }
 
-// Interface para configurações de pagamento
-interface ConfigPagamento {
-  mpAccessToken: string | null
-  mpPublicKey: string | null
-  mpClientId: string | null
-  mpClientSecret: string | null
-  mpAmbiente: string
-  mpWebhookSecret: string | null
-}
-
-// Buscar configurações de pagamento
-async function getConfiguracao(): Promise<ConfigPagamento | null> {
-  const config = await db.configuracaoPagamento.findFirst()
-  if (!config) return null
-  
-  return {
-    mpAccessToken: config.mpAccessToken,
-    mpPublicKey: config.mpPublicKey,
-    mpClientId: config.mpClientId,
-    mpClientSecret: config.mpClientSecret,
-    mpAmbiente: config.mpAmbiente || 'sandbox',
-    mpWebhookSecret: config.mpWebhookSecret
+// Interface para resposta do Payment
+interface MPPayment {
+  id: number
+  status: string
+  status_detail: string
+  payment_type_id: string
+  payment_method_id: string
+  transaction_amount: number
+  external_reference?: string
+  date_created: string
+  date_approved?: string
+  point_of_interaction?: {
+    transaction_data: {
+      qr_code: string
+      qr_code_base64: string
+      ticket_url: string
+    }
   }
 }
 
-// Obter URL base (MP usa a mesma URL para sandbox e produção, muda só o token)
+// Buscar configurações de pagamento do Super Admin
+async function getConfiguracao(): Promise<ConfigPagamento | null> {
+  const config = await db.configuracaoPagamento.findFirst()
+  if (!config) return null
+
+  return {
+    mpAccessToken: config.mpAccessToken,
+    mpPublicKey: config.mpPublicKey,
+    mpAmbiente: config.mpAmbiente || 'sandbox'
+  }
+}
+
+/**
+ * Buscar token do Mercado Pago da LOJA (OAuth)
+ * Retorna null se a loja não estiver conectada
+ */
+export async function getLojaMpToken(lojaId: string): Promise<{
+  accessToken: string | null
+  publicKey: string | null
+  conectado: boolean
+}> {
+  const loja = await db.loja.findUnique({
+    where: { id: lojaId },
+    select: {
+      mpAccessToken: true,
+      mpPublicKey: true,
+      mpConectado: true,
+      mpTokenExpiresAt: true,
+      mpRefreshToken: true
+    }
+  })
+
+  if (!loja || !loja.mpConectado || !loja.mpAccessToken) {
+    return { accessToken: null, publicKey: null, conectado: false }
+  }
+
+  // Verificar se o token expirou
+  if (loja.mpTokenExpiresAt && new Date() > loja.mpTokenExpiresAt) {
+    console.warn('[MercadoPago] Token da loja expirado:', lojaId)
+    // TODO: Implementar renovação do token com refresh_token
+    return { accessToken: null, publicKey: null, conectado: false }
+  }
+
+  return {
+    accessToken: loja.mpAccessToken,
+    publicKey: loja.mpPublicKey,
+    conectado: true
+  }
+}
+
+/**
+ * Verificar qual token usar baseado no contexto
+ * - Para OS/pagamentos da loja: usar token da LOJA (OAuth)
+ * - Para mensalidades/faturas: usar token do SUPER ADMIN
+ */
+export async function getTokenContexto(lojaId?: string, contexto: 'os' | 'mensalidade' = 'os'): Promise<{
+  accessToken: string | null
+  publicKey: string | null
+  origem: 'loja' | 'superadmin' | null
+}> {
+  // Mensalidades sempre usam token do Super Admin
+  if (contexto === 'mensalidade') {
+    const config = await getConfiguracao()
+    return {
+      accessToken: config?.mpAccessToken || null,
+      publicKey: config?.mpPublicKey || null,
+      origem: config?.mpAccessToken ? 'superadmin' : null
+    }
+  }
+
+  // Para OS, tentar usar token da loja primeiro
+  if (lojaId) {
+    const lojaToken = await getLojaMpToken(lojaId)
+    if (lojaToken.conectado && lojaToken.accessToken) {
+      return {
+        accessToken: lojaToken.accessToken,
+        publicKey: lojaToken.publicKey,
+        origem: 'loja'
+      }
+    }
+  }
+
+  // Fallback: usar token do Super Admin (compatibilidade)
+  const config = await getConfiguracao()
+  return {
+    accessToken: config?.mpAccessToken || null,
+    publicKey: config?.mpPublicKey || null,
+    origem: config?.mpAccessToken ? 'superadmin' : null
+  }
+}
+
+// Obter URL base conforme ambiente
 function getBaseUrl(): string {
+  // Mercado Pago usa a mesma URL para sandbox e produção
+  // A diferenciação é feita pelo Access Token
   return MP_URLS.producao
 }
 
@@ -129,11 +195,26 @@ async function mpRequest(
       return { error: 'Access Token do Mercado Pago não configurado', status: 400 }
     }
     
-    const url = `${getBaseUrl()}${endpoint}`
+    const baseUrl = getBaseUrl()
+    const url = `${baseUrl}${endpoint}`
     
+    console.log('[MercadoPago] Fazendo requisição:', {
+      url,
+      method,
+      temToken: !!token,
+      tokenPreview: token ? `${token.substring(0, 10)}...` : null
+    })
+    
+    // Headers obrigatórios
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
+    }
+    
+    // X-Idempotency-Key é OBRIGATÓRIO para POST/PUT
+    // Deve ser único para cada requisição
+    if (method === 'POST' || method === 'PUT') {
+      headers['X-Idempotency-Key'] = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
     }
     
     const options: RequestInit = {
@@ -145,355 +226,618 @@ async function mpRequest(
       options.body = JSON.stringify(body)
     }
     
-    console.log(`[MP] ${method} ${endpoint}`)
-    
     const response = await fetch(url, options)
-    const data = await response.json()
+    
+    // Capturar texto bruto primeiro
+    const responseText = await response.text()
+    console.log('[MercadoPago] Resposta bruta:', {
+      status: response.status,
+      statusText: response.statusText,
+      bodyPreview: responseText.substring(0, 500)
+    })
+    
+    // Tentar fazer parse do JSON
+    let data
+    try {
+      data = JSON.parse(responseText)
+    } catch {
+      const errorMsg = responseText 
+        ? `Resposta não-JSON do Mercado Pago (HTTP ${response.status}): ${responseText.substring(0, 200)}`
+        : `Resposta vazia do Mercado Pago (HTTP ${response.status})`
+      return { 
+        error: errorMsg,
+        status: response.status
+      }
+    }
     
     if (!response.ok) {
-      console.error('[MP] Erro na resposta:', data)
+      console.error('[MercadoPago] Erro na resposta:', {
+        status: response.status,
+        data: JSON.stringify(data)
+      })
+      
+      const errorMsg = data.message || data.error || 
+        (data.causes && data.causes.map((c: { description: string }) => c.description).join(', ')) ||
+        `Erro HTTP ${response.status}`
+      
       return { 
-        error: data.message || data.error || data.cause?.[0]?.description || 'Erro na API Mercado Pago',
+        error: errorMsg,
         status: response.status
       }
     }
     
     return { data, status: response.status }
   } catch (error) {
-    console.error('[MP] Erro na requisição:', error)
-    return { error: 'Erro de conexão com Mercado Pago', status: 500 }
+    console.error('[MercadoPago] Erro na requisição:', error)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    return { error: `Erro de conexão: ${errorMessage}`, status: 500 }
   }
 }
 
 // ==================== FUNÇÕES PÚBLICAS ====================
 
 /**
- * Criar um cliente (Customer) no Mercado Pago
- */
-export async function criarCustomer(
-  nome: string,
-  email: string,
-  cpfCnpj: string,
-  telefone?: string
-): Promise<{ success: boolean; customerId?: string; error?: string }> {
-  // Separar nome e sobrenome
-  const nomes = nome.trim().split(' ')
-  const firstName = nomes[0] || ''
-  const lastName = nomes.slice(1).join(' ') || ''
-  
-  // Limpar CPF/CNPJ
-  const cpfCnpjLimpo = cpfCnpj.replace(/\D/g, '')
-  
-  // Determinar tipo de documento
-  const docType = cpfCnpjLimpo.length === 11 ? 'CPF' : cpfCnpjLimpo.length === 14 ? 'CNPJ' : 'CPF'
-  
-  // Limpar telefone
-  const telefoneLimpo = telefone?.replace(/\D/g, '')
-  const areaCode = telefoneLimpo?.slice(0, 2) || ''
-  const phoneNumero = telefoneLimpo?.slice(2) || ''
-  
-  const body: Record<string, unknown> = {
-    email,
-    first_name: firstName,
-    last_name: lastName,
-    identification: {
-      type: docType,
-      number: cpfCnpjLimpo
-    }
-  }
-  
-  if (areaCode && phoneNumero) {
-    body.phone = {
-      area_code: areaCode,
-      number: phoneNumero
-    }
-  }
-  
-  const result = await mpRequest('/customers', 'POST', body)
-  
-  if (result.error) {
-    // Se já existe, buscar pelo email
-    if (result.status === 400 || result.error.includes('already exists')) {
-      const searchResult = await mpRequest(`/customers/search?email=${encodeURIComponent(email)}`)
-      if (searchResult.data) {
-        const customers = searchResult.data as { results?: MPCustomer[] }
-        if (customers.results && customers.results.length > 0) {
-          return { success: true, customerId: customers.results[0].id }
-        }
-      }
-    }
-    return { success: false, error: result.error }
-  }
-  
-  const customer = result.data as MPCustomer
-  return { success: true, customerId: customer.id }
-}
-
-/**
- * Buscar ou criar cliente no Mercado Pago
- */
-export async function buscarOuCriarCustomer(
-  nome: string,
-  email: string,
-  cpfCnpj: string,
-  telefone?: string
-): Promise<{ success: boolean; customerId?: string; error?: string }> {
-  // Primeiro, buscar cliente existente pelo email
-  const cpfCnpjLimpo = cpfCnpj.replace(/\D/g, '')
-  
-  const result = await mpRequest(`/customers/search?email=${encodeURIComponent(email)}`)
-  
-  if (result.data) {
-    const customers = result.data as { results?: MPCustomer[] }
-    if (customers.results && customers.results.length > 0) {
-      return { success: true, customerId: customers.results[0].id }
-    }
-  }
-  
-  // Criar novo cliente
-  return criarCustomer(nome, email, cpfCnpj, telefone)
-}
-
-/**
- * Criar uma preferência de pagamento (Link de pagamento)
+ * Criar uma preferência de pagamento (link com PIX, cartão, boleto)
+ * IMPORTANTE: Para boleto funcionar com código de barras, passe dados do payer com CPF/CNPJ
  */
 export async function criarPreferencia(
-  dados: {
-    titulo: string
+  titulo: string,
+  valor: number,
+  referenciaExterna: string,
+  opcoes?: {
     descricao?: string
-    valor: number
     quantidade?: number
-    externalReference: string
-    payerEmail?: string
-    payerName?: string
-    payerCpf?: string
-    payerPhone?: string
-    notificationUrl?: string
     backUrls?: {
       success: string
       failure: string
       pending: string
     }
+    notificationUrl?: string
+    expiraEm?: number // minutos
+    payer?: {
+      nome?: string
+      email?: string
+      telefone?: string
+      cpfCnpj?: string
+      endereco?: string
+    }
   }
-): Promise<{ 
+): Promise<{
   success: boolean
   preferenceId?: string
-  initPoint?: string
-  sandboxInitPoint?: string
-  qrCode?: string
-  error?: string 
+  linkPagamento?: string
+  linkSandbox?: string
+  error?: string
 }> {
+  const config = await getConfiguracao()
+  const ambiente = config?.mpAmbiente || 'sandbox'
+  const isProducao = ambiente === 'producao'
+  
+  // Montar items
   const items: MPItem[] = [{
-    id: dados.externalReference,
-    title: dados.titulo,
-    description: dados.descricao,
-    quantity: dados.quantidade || 1,
-    unit_price: dados.valor,
+    id: referenciaExterna,
+    title: titulo,
+    description: opcoes?.descricao,
+    quantity: opcoes?.quantidade || 1,
+    unit_price: valor,
     currency_id: 'BRL'
   }]
   
-  const preference: Record<string, unknown> = {
+  // Montar payer com dados do cliente (IMPORTANTE para boleto)
+  // SEMPRE enviar payer, mesmo que com dados genéricos
+  const payerData: Record<string, unknown> = {}
+  
+  if (opcoes?.payer) {
+    const p = opcoes.payer
+    
+    if (p.nome) {
+      const nomes = p.nome.split(' ')
+      payerData.name = nomes[0] || 'Cliente'
+      payerData.surname = nomes.slice(1).join(' ') || ''
+    } else {
+      payerData.name = 'Cliente'
+      payerData.surname = ''
+    }
+    
+    if (p.email) {
+      payerData.email = p.email
+    } else {
+      payerData.email = 'cliente@osfy.com.br'
+    }
+    
+    if (p.telefone) {
+      // Tentar extrair DDD e número
+      const telefone = p.telefone.replace(/\D/g, '')
+      if (telefone.length >= 10) {
+        payerData.phone = {
+          area_code: telefone.substring(0, 2),
+          number: telefone.substring(2)
+        }
+      }
+    }
+    
+    // CPF/CNPJ é essencial para boleto
+    if (p.cpfCnpj) {
+      const doc = p.cpfCnpj.replace(/\D/g, '')
+      if (doc.length >= 11) {
+        payerData.identification = {
+          type: doc.length === 11 ? 'CPF' : 'CNPJ',
+          number: doc
+        }
+      }
+    }
+    
+    // Endereço (string única)
+    if (p.endereco) {
+      payerData.address = {
+        zip_code: '00000000', // CEP genérico se não informado
+        street_name: p.endereco,
+        street_number: 'S/N'
+      }
+    }
+  } else {
+    // Payer genérico quando não informado
+    payerData.name = 'Cliente'
+    payerData.surname = 'OSFY'
+    payerData.email = 'cliente@osfy.com.br'
+  }
+  
+  // Montar body
+  const body: Record<string, unknown> = {
     items,
-    external_reference: dados.externalReference,
-    payment_methods: {
-      installments: 1
+    external_reference: referenciaExterna,
+    back_urls: opcoes?.backUrls || {
+      success: 'https://tec-os.vercel.app/pagamento/sucesso',
+      failure: 'https://tec-os.vercel.app/pagamento/erro',
+      pending: 'https://tec-os.vercel.app/pagamento/pendente'
     },
-    expires: true,
-    expiration_date_from: new Date().toISOString(),
-    expiration_date_to: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 dias
+    auto_return: 'approved',
+    // IMPORTANTE: binary_mode = false permite PIX e Boleto (pagamentos pendentes)
+    binary_mode: false,
+    // Aceita PIX, Cartao, Boleto - NÃO excluir nenhum método
+    payment_methods: {
+      installments: 12, // Maximo de parcelas
+      // NÃO usar excluded_payment_methods ou excluded_payment_types
+    }
   }
   
-  // Adicionar payer se tiver dados
-  if (dados.payerEmail) {
-    const payer: MPPayer = {
-      email: dados.payerEmail
-    }
-    
-    if (dados.payerName) {
-      const nomes = dados.payerName.trim().split(' ')
-      payer.name = nomes[0]
-      payer.surname = nomes.slice(1).join(' ')
-    }
-    
-    if (dados.payerCpf) {
-      const cpfLimpo = dados.payerCpf.replace(/\D/g, '')
-      payer.identification = {
-        type: cpfLimpo.length === 11 ? 'CPF' : 'CNPJ',
-        number: cpfLimpo
-      }
-    }
-    
-    if (dados.payerPhone) {
-      const telLimpo = dados.payerPhone.replace(/\D/g, '')
-      payer.phone = {
-        area_code: telLimpo.slice(0, 2),
-        number: telLimpo.slice(2)
-      }
-    }
-    
-    preference.payer = payer
+  // SEMPRE adicionar payer
+  body.payer = payerData
+  console.log('[MercadoPago] Payer configurado:', JSON.stringify(payerData))
+  
+  // URL de notificacao (webhook)
+  if (opcoes?.notificationUrl) {
+    body.notification_url = opcoes.notificationUrl
   }
   
-  // Adicionar URLs de retorno
-  if (dados.backUrls) {
-    preference.back_urls = dados.backUrls
-    preference.auto_return = 'approved'
+  // Expiracao (padrao: 30 dias)
+  const expiraMinutos = opcoes?.expiraEm || (30 * 24 * 60) // 30 dias
+  if (expiraMinutos > 0) {
+    body.expires = true
+    const agora = new Date()
+    const expiracao = new Date(agora.getTime() + expiraMinutos * 60 * 1000)
+    body.expiration_date_from = agora.toISOString()
+    body.expiration_date_to = expiracao.toISOString()
   }
   
-  // Adicionar URL de notificação
-  if (dados.notificationUrl) {
-    preference.notification_url = dados.notificationUrl
-  }
+  console.log('[MercadoPago] Criando preferencia:', { titulo, valor, referenciaExterna, ambiente, isProducao })
   
-  const result = await mpRequest('/checkout/preferences', 'POST', preference)
+  const result = await mpRequest('/checkout/preferences', 'POST', body)
   
   if (result.error) {
     return { success: false, error: result.error }
   }
   
-  const pref = result.data as MPPreference
+  const preference = result.data as MPPreference
+  
+  // IMPORTANTE: Usar o link correto baseado no ambiente
+  // - Access Token TEST-xxx = usar sandbox_init_point
+  // - Access Token APP_USR-xxx = usar init_point
+  let linkPagamento: string | undefined
+  
+  if (isProducao) {
+    // Producao: usar init_point
+    linkPagamento = preference.init_point
+    console.log('[MercadoPago] Ambiente PRODUCAO - usando init_point')
+  } else {
+    // Sandbox: usar sandbox_init_point
+    linkPagamento = preference.sandbox_init_point
+    console.log('[MercadoPago] Ambiente SANDBOX - usando sandbox_init_point')
+  }
+  
+  console.log('[MercadoPago] Preferencia criada:', {
+    id: preference.id,
+    init_point: preference.init_point ? 'OK' : 'N/A',
+    sandbox_init_point: preference.sandbox_init_point ? 'OK' : 'N/A',
+    linkFinal: linkPagamento ? 'OK' : 'ERRO - SEM LINK',
+    ambiente
+  })
+  
+  if (!linkPagamento) {
+    // Fallback: tentar qualquer link disponivel
+    linkPagamento = preference.init_point || preference.sandbox_init_point
+  }
+  
+  if (!linkPagamento) {
+    return { 
+      success: false, 
+      error: 'Mercado Pago nao retornou link de pagamento. Verifique se o Access Token esta correto e corresponde ao ambiente (TEST para sandbox, APP_USR para producao).' 
+    }
+  }
+  
   return {
     success: true,
-    preferenceId: pref.id,
-    initPoint: pref.init_point,
-    sandboxInitPoint: pref.sandbox_init_point
+    preferenceId: preference.id,
+    linkPagamento,
+    linkSandbox: preference.sandbox_init_point
   }
 }
 
 /**
- * Criar pagamento PIX direto
+ * Criar pagamento PIX diretamente (QR Code imediato)
+ * Payer é OBRIGATÓRIO - pode ser dados genéricos para PIX neutro
  */
 export async function criarPagamentoPix(
-  dados: {
-    valor: number
-    descricao: string
-    externalReference: string
-    payerEmail: string
-    payerName?: string
-    payerCpf?: string
+  valor: number,
+  descricao: string,
+  referenciaExterna: string,
+  payerInfo?: {
+    email?: string
+    firstName?: string
+    lastName?: string
+    identificationType?: string
+    identificationNumber?: string
   }
-): Promise<{ 
+): Promise<{
   success: boolean
   paymentId?: number
   qrCode?: string
   qrCodeBase64?: string
   ticketUrl?: string
-  error?: string 
+  error?: string
 }> {
-  const payment: Record<string, unknown> = {
-    transaction_amount: dados.valor,
-    description: dados.descricao,
+  // Payer é OBRIGATÓRIO para PIX
+  // Se não informado, usa dados genéricos
+  const payer = payerInfo?.email ? {
+    email: payerInfo.email,
+    first_name: payerInfo.firstName || 'Cliente',
+    last_name: payerInfo.lastName || '',
+    identification: payerInfo.identificationNumber ? {
+      type: payerInfo.identificationType || 'CPF',
+      number: payerInfo.identificationNumber
+    } : undefined
+  } : {
+    // PIX neutro - dados genéricos obrigatórios
+    email: 'cliente@osfy.com.br',
+    first_name: 'Cliente',
+    last_name: 'OSFY'
+  }
+  
+  const body = {
+    transaction_amount: valor,
+    description: descricao,
     payment_method_id: 'pix',
-    external_reference: dados.externalReference,
-    payer: {
-      email: dados.payerEmail
-    },
-    date_of_expiration: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutos
+    external_reference: referenciaExterna,
+    payer: payer,
+    // Opcional: data de expiracao (30 minutos)
+    date_of_expiration: new Date(Date.now() + 30 * 60 * 1000).toISOString()
   }
   
-  if (dados.payerName) {
-    const nomes = dados.payerName.trim().split(' ')
-    ;(payment.payer as Record<string, unknown>).first_name = nomes[0]
-    ;(payment.payer as Record<string, unknown>).last_name = nomes.slice(1).join(' ')
-  }
+  console.log('[MercadoPago] Criando PIX:', { 
+    valor, 
+    descricao, 
+    referenciaExterna,
+    payer: JSON.stringify(payer),
+    body: JSON.stringify(body, null, 2)
+  })
   
-  if (dados.payerCpf) {
-    const cpfLimpo = dados.payerCpf.replace(/\D/g, '')
-    ;(payment.payer as Record<string, unknown>).identification = {
-      type: cpfLimpo.length === 11 ? 'CPF' : 'CNPJ',
-      number: cpfLimpo
-    }
-  }
+  const result = await mpRequest('/v1/payments', 'POST', body)
   
-  const result = await mpRequest('/v1/payments', 'POST', payment)
+  console.log('[MercadoPago] Resposta completa:', JSON.stringify(result, null, 2))
   
   if (result.error) {
+    console.error('[MercadoPago] Erro ao criar PIX:', result.error)
     return { success: false, error: result.error }
   }
   
-  const pay = result.data as MPPayment
+  const payment = result.data as MPPayment
+  
+  console.log('[MercadoPago] Payment criado:', {
+    id: payment.id,
+    status: payment.status,
+    status_detail: payment.status_detail,
+    tem_point_of_interaction: !!payment.point_of_interaction,
+    tem_transaction_data: !!payment.point_of_interaction?.transaction_data
+  })
+  
+  // Verificar se gerou o QR Code
+  const transactionData = payment.point_of_interaction?.transaction_data
+  
+  if (!transactionData) {
+    console.error('[MercadoPago] QR Code não gerado. Payment:', JSON.stringify(payment, null, 2))
+    return { 
+      success: false, 
+      error: `QR Code PIX não gerado. Status: ${payment.status} - ${payment.status_detail}. Verifique se o PIX está habilitado na sua conta Mercado Pago.` 
+    }
+  }
+  
+  console.log('[MercadoPago] PIX criado com sucesso:', {
+    paymentId: payment.id,
+    temQrCode: !!transactionData.qr_code,
+    temQrCodeBase64: !!transactionData.qr_code_base64,
+    temTicketUrl: !!transactionData.ticket_url
+  })
   
   return {
     success: true,
-    paymentId: pay.id,
-    qrCode: pay.point_of_interaction?.transaction_data?.qr_code,
-    qrCodeBase64: pay.point_of_interaction?.transaction_data?.qr_code_base64,
-    ticketUrl: pay.point_of_interaction?.transaction_data?.ticket_url
+    paymentId: payment.id,
+    qrCode: transactionData.qr_code,
+    qrCodeBase64: transactionData.qr_code_base64,
+    ticketUrl: transactionData.ticket_url
   }
 }
 
 /**
- * Criar pagamento com Boleto
+ * Criar pagamento BOLETO diretamente (código de barras imediato)
+ * Payer com CPF/CNPJ e ENDEREÇO COMPLETO são OBRIGATÓRIOS
  */
 export async function criarPagamentoBoleto(
-  dados: {
-    valor: number
-    descricao: string
-    externalReference: string
-    payerEmail: string
-    payerName?: string
-    payerCpf?: string
-    payerPhone?: string
-    dataVencimento?: string // YYYY-MM-DD
+  valor: number,
+  descricao: string,
+  referenciaExterna: string,
+  payerInfo: {
+    email?: string
+    firstName?: string
+    lastName?: string
+    cpfCnpj: string // OBRIGATÓRIO
+    // Endereço completo - TODOS obrigatórios para boleto registrado
+    endereco: {
+      logradouro: string // Nome da rua/avenida
+      numero: string // Número
+      bairro: string // Bairro
+      cep: string // CEP (apenas números)
+      cidade: string // Cidade
+      estado: string // UF (2 letras)
+      complemento?: string // Complemento (opcional)
+    }
   }
-): Promise<{ 
+): Promise<{
   success: boolean
   paymentId?: number
-  boletoUrl?: string
-  boletoLinhaDigitavel?: string
-  error?: string 
+  codigoBarras?: string
+  linhaDigitavel?: string
+  linkBoleto?: string
+  dataVencimento?: string
+  error?: string
 }> {
-  const payment: Record<string, unknown> = {
-    transaction_amount: dados.valor,
-    description: dados.descricao,
+  // Validação: valor mínimo para boleto é R$ 5,00
+  if (valor < 5) {
+    return { 
+      success: false, 
+      error: 'Valor mínimo para boleto é R$ 5,00' 
+    }
+  }
+  
+  // Payer é OBRIGATÓRIO para boleto
+  if (!payerInfo.cpfCnpj) {
+    return { 
+      success: false, 
+      error: 'CPF/CNPJ é obrigatório para gerar boleto' 
+    }
+  }
+  
+  // Limpar CPF/CNPJ (apenas números)
+  const documento = payerInfo.cpfCnpj.replace(/\D/g, '')
+  
+  if (documento.length !== 11 && documento.length !== 14) {
+    return { 
+      success: false, 
+      error: 'CPF deve ter 11 dígitos ou CNPJ 14 dígitos' 
+    }
+  }
+  
+  // Validar endereço completo
+  const { endereco } = payerInfo
+  const cepLimpo = endereco.cep.replace(/\D/g, '')
+  
+  if (!endereco.logradouro || endereco.logradouro.trim() === '') {
+    return { success: false, error: 'Logradouro (rua/avenida) é obrigatório para boleto' }
+  }
+  if (!endereco.numero || endereco.numero.trim() === '') {
+    return { success: false, error: 'Número do endereço é obrigatório para boleto' }
+  }
+  if (!endereco.bairro || endereco.bairro.trim() === '') {
+    return { success: false, error: 'Bairro é obrigatório para boleto' }
+  }
+  if (cepLimpo.length !== 8) {
+    return { success: false, error: 'CEP deve ter 8 dígitos para boleto' }
+  }
+  if (!endereco.cidade || endereco.cidade.trim() === '') {
+    return { success: false, error: 'Cidade é obrigatória para boleto' }
+  }
+  if (!endereco.estado || endereco.estado.length !== 2) {
+    return { success: false, error: 'Estado (UF) deve ter 2 letras para boleto' }
+  }
+  
+  const body = {
+    transaction_amount: valor,
+    description: descricao,
     payment_method_id: 'bolbradesco',
-    external_reference: dados.externalReference,
+    external_reference: referenciaExterna,
     payer: {
-      email: dados.payerEmail
+      email: payerInfo.email || 'cliente@osfy.com.br',
+      first_name: payerInfo.firstName || 'Cliente',
+      last_name: payerInfo.lastName || '',
+      identification: {
+        type: documento.length === 11 ? 'CPF' : 'CNPJ',
+        number: documento
+      },
+      // Endereço completo - OBRIGATÓRIO para boleto registrado
+      address: {
+        zip_code: cepLimpo,
+        street_name: endereco.logradouro,
+        street_number: endereco.numero,
+        neighborhood: endereco.bairro,
+        city: endereco.cidade,
+        federal_unit: endereco.estado.toUpperCase()
+      }
     },
-    date_of_expiration: dados.dataVencimento || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    // Vencimento em 3 dias
+    date_of_expiration: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
   }
   
-  if (dados.payerName) {
-    const nomes = dados.payerName.trim().split(' ')
-    ;(payment.payer as Record<string, unknown>).first_name = nomes[0]
-    ;(payment.payer as Record<string, unknown>).last_name = nomes.slice(1).join(' ')
-  }
-  
-  if (dados.payerCpf) {
-    const cpfLimpo = dados.payerCpf.replace(/\D/g, '')
-    ;(payment.payer as Record<string, unknown>).identification = {
-      type: cpfLimpo.length === 11 ? 'CPF' : 'CNPJ',
-      number: cpfLimpo
+  console.log('[MercadoPago] Criando BOLETO:', { 
+    valor, 
+    descricao, 
+    referenciaExterna,
+    documento: documento.substring(0, 3) + '***',
+    endereco: {
+      ...endereco,
+      cep: cepLimpo
     }
-  }
+  })
   
-  if (dados.payerPhone) {
-    const telLimpo = dados.payerPhone.replace(/\D/g, '')
-    ;(payment.payer as Record<string, unknown>).phone = {
-      area_code: telLimpo.slice(0, 2),
-      number: telLimpo.slice(2)
-    }
-  }
-  
-  const result = await mpRequest('/v1/payments', 'POST', payment)
+  const result = await mpRequest('/v1/payments', 'POST', body)
   
   if (result.error) {
+    console.error('[MercadoPago] Erro ao criar BOLETO:', result.error)
     return { success: false, error: result.error }
   }
   
-  const pay = result.data as MPPayment & { 
-    transaction_details?: { 
-      external_resource_url?: string
-      verification_code?: string
-    } 
-  }
+  const payment = result.data as Record<string, unknown>
+  
+  // Log completo da resposta para debug
+  console.log('[MercadoPago] BOLETO resposta COMPLETA:', JSON.stringify(payment, null, 2))
+  
+  // Extrair dados do boleto
+  // O Mercado Pago retorna barcode na raiz do objeto ou em transaction_details
+  const barcode = payment?.barcode as Record<string, unknown> || {}
+  const transactionDetails = payment?.transaction_details as Record<string, unknown> || {}
+  
+  // O código de barras pode vir em barcode.content ou transaction_details.barcode.content
+  const codigoBarras = (barcode?.content as string) || 
+                       ((transactionDetails?.barcode as Record<string, unknown>)?.content as string)
+  
+  // A linha digitável pode vir em digitable_line ou digitable_line_mask
+  const linhaDigitavel = (transactionDetails?.digitable_line as string) ||
+                         (payment?.digitable_line as string)
+  
+  // O link do boleto
+  const linkBoleto = transactionDetails?.external_resource_url as string
+  
+  console.log('[MercadoPago] BOLETO dados extraídos:', {
+    paymentId: payment?.id,
+    status: payment?.status,
+    codigoBarras,
+    linhaDigitavel,
+    linkBoleto
+  })
   
   return {
     success: true,
-    paymentId: pay.id,
-    boletoUrl: pay.transaction_details?.external_resource_url,
-    boletoLinhaDigitavel: pay.transaction_details?.verification_code
+    paymentId: payment?.id as number,
+    codigoBarras,
+    linhaDigitavel,
+    linkBoleto,
+    dataVencimento: payment?.date_of_expiration as string
+  }
+}
+
+/**
+ * Criar pagamento com CARTÃO DE CRÉDITO
+ * Token e Device ID são obrigatórios (gerados no frontend via SDK)
+ */
+export async function criarPagamentoCartao(
+  valor: number,
+  descricao: string,
+  referenciaExterna: string,
+  token: string,
+  deviceId?: string, // Opcional - pode não ser capturado em alguns casos
+  parcelas: number = 1,
+  paymentMethodId?: string, // visa, master, amex, etc (opcional - MP detecta pelo token)
+  payerInfo?: {
+    email?: string
+    firstName?: string
+    lastName?: string
+    identificationType?: string
+    identificationNumber?: string
+  }
+): Promise<{
+  success: boolean
+  paymentId?: number
+  status?: string
+  statusDetail?: string
+  error?: string
+}> {
+  // Montar body
+  const body: Record<string, unknown> = {
+    transaction_amount: valor,
+    description: descricao,
+    token, // Token do cartão (gerado pelo SDK)
+    installments: parcelas,
+    external_reference: referenciaExterna,
+    payer: {
+      email: payerInfo?.email || 'cliente@osfy.com.br',
+      first_name: payerInfo?.firstName || 'Cliente',
+      last_name: payerInfo?.lastName || '',
+    }
+  }
+  
+  // Se tiver payment_method_id (visa, master, etc), usar
+  if (paymentMethodId) {
+    body.payment_method_id = paymentMethodId
+  }
+  // Se não, deixar o MP detectar automaticamente pelo token
+  
+  // Device ID - só enviar se tiver valor
+  if (deviceId && deviceId.trim() !== '') {
+    body.device_id = deviceId
+    console.log('[MercadoPago] Device ID:', deviceId)
+  } else {
+    console.warn('[MercadoPago] Device ID não capturado - prosseguindo sem ele')
+  }
+  
+  // Adicionar CPF/CNPJ se informado
+  if (payerInfo?.identificationNumber) {
+    const doc = payerInfo.identificationNumber.replace(/\D/g, '')
+    body.payer = {
+      ...body.payer as object,
+      identification: {
+        type: payerInfo.identificationType || (doc.length === 11 ? 'CPF' : 'CNPJ'),
+        number: doc
+      }
+    }
+  }
+  
+  console.log('[MercadoPago] Criando CARTÃO:', { 
+    valor, 
+    descricao, 
+    referenciaExterna,
+    parcelas,
+    paymentMethodId,
+    temDeviceId: !!(deviceId && deviceId.trim())
+  })
+  
+  const result = await mpRequest('/v1/payments', 'POST', body)
+  
+  if (result.error) {
+    console.error('[MercadoPago] Erro ao criar CARTÃO:', result.error)
+    return { success: false, error: result.error }
+  }
+  
+  const payment = result.data as Record<string, unknown>
+  
+  console.log('[MercadoPago] CARTÃO criado:', {
+    id: payment?.id,
+    status: payment?.status,
+    status_detail: payment?.status_detail
+  })
+  
+  return {
+    success: true,
+    paymentId: payment?.id as number,
+    status: payment?.status as string,
+    statusDetail: payment?.status_detail as string
   }
 }
 
@@ -501,18 +845,14 @@ export async function criarPagamentoBoleto(
  * Buscar status de um pagamento
  */
 export async function buscarPagamento(
-  paymentId: number | string
+  paymentId: number
 ): Promise<{
   success: boolean
   status?: string
   statusDetail?: string
-  paymentType?: string
-  paymentMethodId?: string
-  transactionAmount?: number
-  externalReference?: string
-  dateApproved?: string
-  qrCode?: string
-  qrCodeBase64?: string
+  valor?: number
+  dataAprovacao?: string
+  formaPagamento?: string
   error?: string
 }> {
   const result = await mpRequest(`/v1/payments/${paymentId}`)
@@ -521,33 +861,31 @@ export async function buscarPagamento(
     return { success: false, error: result.error }
   }
   
-  const pay = result.data as MPPayment
+  const payment = result.data as MPPayment
   
   return {
     success: true,
-    status: pay.status,
-    statusDetail: pay.status_detail,
-    paymentType: pay.payment_type,
-    paymentMethodId: pay.payment_method_id,
-    transactionAmount: pay.transaction_amount,
-    externalReference: pay.external_reference,
-    dateApproved: pay.date_approved,
-    qrCode: pay.point_of_interaction?.transaction_data?.qr_code,
-    qrCodeBase64: pay.point_of_interaction?.transaction_data?.qr_code_base64
+    status: payment.status,
+    statusDetail: payment.status_detail,
+    valor: payment.transaction_amount,
+    dataAprovacao: payment.date_approved,
+    formaPagamento: payment.payment_type_id
   }
 }
 
 /**
- * Buscar pagamento por referência externa (número da OS)
+ * Buscar pagamento por referência externa
  */
 export async function buscarPagamentoPorReferencia(
-  externalReference: string
+  referenciaExterna: string
 ): Promise<{
   success: boolean
   payments?: MPPayment[]
   error?: string
 }> {
-  const result = await mpRequest(`/v1/payments/search?external_reference=${encodeURIComponent(externalReference)}`)
+  const result = await mpRequest(
+    `/v1/payments/search?external_reference=${encodeURIComponent(referenciaExterna)}`
+  )
   
   if (result.error) {
     return { success: false, error: result.error }
@@ -562,10 +900,32 @@ export async function buscarPagamentoPorReferencia(
 }
 
 /**
- * Cancelar um pagamento
+ * Buscar preferência por ID
+ */
+export async function buscarPreferencia(
+  preferenceId: string
+): Promise<{
+  success: boolean
+  preference?: MPPreference
+  error?: string
+}> {
+  const result = await mpRequest(`/checkout/preferences/${preferenceId}`)
+  
+  if (result.error) {
+    return { success: false, error: result.error }
+  }
+  
+  return {
+    success: true,
+    preference: result.data as MPPreference
+  }
+}
+
+/**
+ * Cancelar pagamento
  */
 export async function cancelarPagamento(
-  paymentId: number | string
+  paymentId: number
 ): Promise<{ success: boolean; error?: string }> {
   const result = await mpRequest(`/v1/payments/${paymentId}`, 'PUT', { status: 'cancelled' })
   
@@ -581,145 +941,92 @@ export async function cancelarPagamento(
  */
 export async function testarConexao(
   accessToken?: string
-): Promise<{ success: boolean; error?: string; info?: string }> {
-  const token = accessToken
-  
-  if (!token) {
-    return { success: false, error: 'Access Token não fornecido' }
-  }
-  
-  // Testar fazendo uma busca simples
-  const result = await mpRequest('/v1/payment_methods', 'GET', undefined, token)
+): Promise<{ success: boolean; error?: string; userId?: string }> {
+  // Usar endpoint de busca simples para testar o token
+  const result = await mpRequest('/users/me', 'GET', undefined, accessToken)
   
   if (result.error) {
     return { success: false, error: result.error }
   }
   
-  // Verificar se é produção ou sandbox pelo prefixo do token
-  const isProduction = token.startsWith('APP_USR-')
+  const data = result.data as { id?: number }
   
   return { 
-    success: true, 
-    info: isProduction ? 'Ambiente de Produção' : 'Ambiente de Sandbox'
+    success: true,
+    userId: data.id?.toString()
   }
 }
 
 /**
  * Validar webhook do Mercado Pago
  */
-export async function validarWebhook(
-  payload: unknown,
+export function validarWebhookMercadoPago(
+  body: unknown,
   signature?: string
-): Promise<{ valid: boolean }> {
-  // O Mercado Pago envia webhooks com estrutura específica
-  try {
-    const data = payload as { 
-      type?: string
-      action?: string
-      data?: { id?: string }
-      live_mode?: boolean
-    }
-    
-    // Verificar se é um webhook válido do MP
-    if (data.type && data.data?.id) {
-      return { valid: true }
-    }
-    
+): { valid: boolean; type?: string; data?: unknown } {
+  if (!body || typeof body !== 'object') {
     return { valid: false }
-  } catch {
+  }
+  
+  const webhookData = body as { type?: string; action?: string; data?: unknown }
+  
+  // Verificar se é uma notificação válida do Mercado Pago
+  if (!webhookData.type) {
     return { valid: false }
+  }
+  
+  // Tipos de notificação do Mercado Pago
+  const tiposValidos = [
+    'payment',
+    'merchant_order',
+    'preapproval',
+    'stop_preapproval',
+    'topic' // formato antigo
+  ]
+  
+  const type = webhookData.type || webhookData.action
+  
+  return {
+    valid: tiposValidos.includes(webhookData.type) || tiposValidos.includes(webhookData.action || ''),
+    type,
+    data: webhookData.data
   }
 }
 
 /**
- * Obter QR Code de um pagamento PIX existente
+ * Mapear status do Mercado Pago para status interno
  */
-export async function obterQrCodePix(
-  paymentId: number | string
-): Promise<{
-  success: boolean
-  qrCode?: string
-  qrCodeBase64?: string
-  error?: string
-}> {
-  const result = await mpRequest(`/v1/payments/${paymentId}`)
-  
-  if (result.error) {
-    return { success: false, error: result.error }
-  }
-  
-  const pay = result.data as MPPayment
-  
-  if (pay.point_of_interaction?.transaction_data) {
-    return {
-      success: true,
-      qrCode: pay.point_of_interaction.transaction_data.qr_code,
-      qrCodeBase64: pay.point_of_interaction.transaction_data.qr_code_base64
-    }
-  }
-  
-  return { success: false, error: 'QR Code não disponível para este pagamento' }
-}
-
-/**
- * Obter métodos de pagamento disponíveis
- */
-export async function obterMetodosPagamento(): Promise<{
-  success: boolean
-  metodos?: Array<{
-    id: string
-    name: string
-    payment_type_id: string
-    thumbnail: string
-  }>
-  error?: string
-}> {
-  const result = await mpRequest('/v1/payment_methods')
-  
-  if (result.error) {
-    return { success: false, error: result.error }
-  }
-  
-  const metodos = result.data as Array<{
-    id: string
-    name: string
-    payment_type_id: string
-    thumbnail: string
-  }>
-  
-  return { success: true, metodos }
-}
-
-// Mapeamento de status do Mercado Pago para status interno
-export function mapearStatusMP(statusMP: string): string {
+export function mapearStatusMercadoPago(statusMP: string): string {
   const mapeamento: Record<string, string> = {
     'pending': 'pendente',
-    'approved': 'paga',
-    'authorized': 'autorizada',
+    'approved': 'pago',
+    'authorized': 'pago',
     'in_process': 'em_analise',
-    'in_mediation': 'em_medicao',
-    'rejected': 'rejeitada',
-    'cancelled': 'cancelada',
-    'refunded': 'estornada',
-    'charged_back': 'estornada'
+    'in_mediation': 'em_disputa',
+    'rejected': 'rejeitado',
+    'cancelled': 'cancelado',
+    'refunded': 'devolvido',
+    'charged_back': 'chargeback'
   }
   
   return mapeamento[statusMP] || 'pendente'
 }
 
-// Traduzir status do MP para português
-export function traduzirStatusMP(statusMP: string): string {
-  const traducoes: Record<string, string> = {
-    'pending': 'Pendente',
-    'approved': 'Aprovado',
-    'authorized': 'Autorizado',
-    'in_process': 'Em análise',
-    'in_mediation': 'Em mediação',
-    'rejected': 'Rejeitado',
-    'cancelled': 'Cancelado',
-    'refunded': 'Estornado',
-    'charged_back': 'Estornado'
+/**
+ * Traduzir forma de pagamento do Mercado Pago
+ */
+export function traduzirFormaPagamento(paymentTypeId: string): string {
+  const traducao: Record<string, string> = {
+    'account_money': 'Saldo Mercado Pago',
+    'ticket': 'Boleto',
+    'bank_transfer': 'Transferência',
+    'atm': 'Caixa Eletrônico',
+    'credit_card': 'Cartão de Crédito',
+    'debit_card': 'Cartão de Débito',
+    'prepaid_card': 'Cartão Pré-pago',
+    'pix': 'PIX',
+    'digital_wallet': 'Carteira Digital'
   }
   
-  return traducoes[statusMP] || statusMP
+  return traducao[paymentTypeId] || paymentTypeId
 }

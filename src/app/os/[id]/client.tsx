@@ -290,8 +290,13 @@ const imprimirOS = async (os: OSPageClientProps['os'], qrCodeBase64?: string) =>
       margin-top: 5px;
     }
     @media print {
-      body { background: white; }
+      body { background: white; min-height: auto; }
+      .via { border: none; padding: 0; }
       .qrcode-area { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .section-title { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .pago { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .codigo-os { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .status-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style>
 </head>
@@ -435,7 +440,12 @@ const imprimirOS = async (os: OSPageClientProps['os'], qrCodeBase64?: string) =>
   if (printWindow) {
     printWindow.document.write(conteudo)
     printWindow.document.close()
-    printWindow.print()
+    // Aguardar todas as imagens carregarem (incluindo QR Code) antes de imprimir
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print()
+      }, 200)
+    }
   }
 }
 

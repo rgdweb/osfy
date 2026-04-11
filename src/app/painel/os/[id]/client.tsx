@@ -576,16 +576,6 @@ export function OSDetailPage({ os }: OSDetailPageProps) {
     gerarQRCode()
   }, [os.id])
   
-  // Estados para pagamento online
-  const [gerandoPagamento, setGerandoPagamento] = useState(false)
-  const [pagamentoGerado, setPagamentoGerado] = useState<{
-    linkPagamento?: string
-    pixQrCode?: string
-    pixCopiaCola?: string
-    boletoUrl?: string
-    valorTotal?: number
-  } | null>(null)
-
   // Estado para popup de WhatsApp após mudança de status
   const [showWhatsAppPopup, setShowWhatsAppPopup] = useState(false)
   const [whatsappData, setWhatsappData] = useState<{
@@ -942,33 +932,6 @@ ${os.loja.nome}`
     }
   }
 
-  // Gerar pagamento online para o cliente (Efí Bank PIX ou Mercado Pago)
-  const handleGerarPagamento = async () => {
-    setGerandoPagamento(true)
-    
-    try {
-      // Gerar PIX via Efí Bank (primeira opção)
-      const response = await fetch(`/api/os/${os.id}/pagamento`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ formaPagamento: 'pix' })
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        setPagamentoGerado(data.pagamento)
-        toast.success('PIX gerado! O cliente pode acessar a página pública para pagar.')
-      } else {
-        toast.error(data.error || 'Erro ao gerar pagamento')
-      }
-    } catch {
-      toast.error('Erro ao conectar com o servidor')
-    } finally {
-      setGerandoPagamento(false)
-    }
-  }
-
   const valorTotal = (() => {
     // Soma todos os valores: orçamento + serviço + peças
     const vOrcamento = parseFloat(orcamento) || 0
@@ -1241,78 +1204,6 @@ ${os.loja.nome}`
                     {os.aprovado ? 'Orçamento aprovado pelo cliente' : 'Orçamento recusado pelo cliente'}
                     {os.dataAprovacao && ` em ${formatDateTime(os.dataAprovacao)}`}
                   </p>
-                </div>
-              )}
-
-              {/* Pagamento Online - Gerar para o cliente */}
-              {!os.pago && valorTotal > 0 && (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
-                  <div className="flex items-center gap-2 text-blue-700 font-medium">
-                    <CreditCard className="w-5 h-5" />
-                    Pagamento Online
-                  </div>
-                  
-                  {/* Se já tem pagamento gerado */}
-                  {(os.mpPaymentId || os.mpPreferenceId || pagamentoGerado) ? (
-                    <div className="space-y-2">
-                      <p className="text-green-700 text-sm font-medium">
-                        ✓ Pagamento gerado! O cliente pode pagar pela página pública.
-                      </p>
-                      {(pagamentoGerado?.linkPagamento || os.linkPagamento) && (
-                        <a 
-                          href={pagamentoGerado?.linkPagamento || os.linkPagamento || '#'}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          Abrir link de pagamento
-                        </a>
-                      )}
-                      {/* Botão de Reset - TEMPORÁRIO PARA TESTES */}
-                      <button
-                        onClick={async () => {
-                          if (!confirm('Resetar pagamento? Isso vai limpar os dados para gerar um novo.')) return
-                          try {
-                            const res = await fetch(`/api/os/${os.id}/resetar-pagamento`, { method: 'POST' })
-                            const data = await res.json()
-                            if (data.success) {
-                              toast.success('Pagamento resetado!')
-                              window.location.reload()
-                            } else {
-                              toast.error(data.error || 'Erro ao resetar')
-                            }
-                          } catch {
-                            toast.error('Erro ao resetar pagamento')
-                          }
-                        }}
-                        className="text-xs text-red-500 hover:text-red-700 underline mt-2"
-                      >
-                        🧪 Resetar pagamento (teste)
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <p className="text-blue-600 text-sm mb-3">
-                        Gere um PIX para o cliente pagar. O código aparecerá na página pública da OS.
-                      </p>
-                      
-                      <Button 
-                        onClick={handleGerarPagamento}
-                        disabled={gerandoPagamento}
-                        className="bg-emerald-600 hover:bg-emerald-700"
-                      >
-                        {gerandoPagamento ? (
-                          <span className="animate-pulse">Gerando...</span>
-                        ) : (
-                          <>
-                            <QrCode className="w-4 h-4 mr-2" />
-                            Gerar PIX
-                          </>
-                        )}
-                      </Button>
-                    </>
-                  )}
                 </div>
               )}
 

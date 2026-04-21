@@ -63,7 +63,13 @@ export async function PATCH(request: NextRequest, { params }: Props) {
 
     if (body.orcamento !== undefined) {
       updateData.orcamento = body.orcamento ? parseFloat(body.orcamento) : null
-      updateData.status = 'aguardando_aprovacao'
+      // Só mudar para aguardando_aprovacao se a OS NÃO está paga e NÃO está em status avançado
+      const statusAvancados = ['pronto', 'entregue']
+      const statusJaPago = body.pago !== undefined ? body.pago : osExistente.pago
+      if (!statusJaPago && !statusAvancados.includes(osExistente.status) && (!body.status || !statusAvancados.includes(body.status))) {
+        updateData.status = 'aguardando_aprovacao'
+        updateData.aprovado = null
+      }
     }
 
     if (body.diagnostico !== undefined) {

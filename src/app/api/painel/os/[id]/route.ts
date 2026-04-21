@@ -73,20 +73,25 @@ export async function PATCH(request: NextRequest, { params }: Props) {
       
       // Verificar se deve mudar status para aguardando_aprovacao
       // Regras:
-      // 1. Se a OS está em status avançado (pronto/entregue), NÃO regredir o status
-      // 2. Se o status atual já é avançado ou o novo status seria avançado, manter
-      // 3. Caso contrário, se tem orçamento, solicitar aprovação do cliente
+      // 1. Se a OS está PAGA, NÃO pedir aprovação (cliente já concordou com o valor ao pagar)
+      // 2. Se a OS está em status avançado (pronto/entregue), NÃO regredir o status
+      // 3. Caso contrário, solicitar aprovação do cliente
       const statusAvancados = ['pronto', 'entregue']
       const statusAtualAvancado = statusAvancados.includes(osExistente.status)
       const novoStatusAvancado = body.status ? statusAvancados.includes(body.status) : false
+      const jaPago = body.pago !== undefined ? body.pago : osExistente.pago
       
-      if (!statusAtualAvancado && !novoStatusAvancado) {
-        // OS não está em status avançado - solicitar aprovação do orçamento
+      if (jaPago) {
+        // Já está pago - não precisa de aprovação do orçamento
+        // Marcar como aprovado automaticamente se ainda não foi
+        if (osExistente.aprovado === null) {
+          updateData.aprovado = true
+          updateData.dataAprovacao = osExistente.dataPagamento || new Date()
+        }
+      } else if (!statusAtualAvancado && !novoStatusAvancado) {
+        // OS não está paga e não está em status avançado - solicitar aprovação do orçamento
         updateData.status = 'aguardando_aprovacao'
         updateData.aprovado = null
-      } else if (statusAtualAvancado && osExistente.aprovado === null && osExistente.orcamento !== null) {
-        // OS está em status avançado mas nunca foi aprovada (caso raro) - manter status, resetar aprovação
-        // Não regredir o status, apenas marcar que precisa de aprovação para registro
       }
     }
 

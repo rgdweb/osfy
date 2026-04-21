@@ -30,13 +30,22 @@ export async function POST(request: NextRequest, { params }: Props) {
       )
     }
 
+    // Determinar o novo status com base na aprovação
+    // Se aprovado e a OS ainda está em aguardando_aprovacao, avançar para aguardando_peca
+    // Se reprovado, voltar para em_analise
+    // Mas se o status já avançou além de aguardando_aprovacao, não regredir
+    const statusAvancados = ['em_manutencao', 'em_testes', 'pronto', 'entregue']
+    const novoStatus = aprovado 
+      ? (statusAvancados.includes(os.status) ? os.status : 'aguardando_peca')
+      : (os.status === 'aguardando_aprovacao' ? 'em_analise' : os.status)
+
     // Atualizar a OS
     const osAtualizada = await db.ordemServico.update({
       where: { id },
       data: {
         aprovado,
         dataAprovacao: new Date(),
-        status: aprovado ? 'aguardando_peca' : 'em_analise'
+        status: novoStatus
       }
     })
 

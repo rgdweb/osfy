@@ -1209,6 +1209,16 @@ ${os.loja.nome}`
                 </div>
               )}
               
+              {os.aprovado === null && os.orcamento && (
+                <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
+                  <p className="text-amber-700 font-medium">
+                    Aguardando aprovação do cliente
+                  </p>
+                  <p className="text-xs text-amber-600 mt-1">
+                    O cliente verá o botão de aprovação na página pública da OS
+                  </p>
+                </div>
+              )}
               {os.aprovado !== null && (
                 <div className={`p-3 rounded-lg ${os.aprovado ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
                   <p className={os.aprovado ? 'text-green-700' : 'text-red-700'}>

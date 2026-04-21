@@ -966,14 +966,28 @@ export function OSPageClient({ os }: OSPageClientProps) {
                       <span className="font-bold">Total:</span>
                       <span className="font-bold text-emerald-600">{formatCurrency(valorTotal)}</span>
                     </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Informações de Pagamento - Sempre visível quando há dados */}
+              {(os.formaPagamento || os.pago || os.dataPagamento) && (
+                <div className="bg-slate-50 p-4 rounded-lg mb-4">
+                  <div className="space-y-2">
                     {os.formaPagamento && (
                       <div className="flex justify-between">
                         <span className="text-slate-600">Forma de Pagamento:</span>
                         <span className="font-medium">{FORMAS_PAGAMENTO[os.formaPagamento] || os.formaPagamento}</span>
                       </div>
                     )}
+                    {os.dataPagamento && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Data do Pagamento:</span>
+                        <span className="font-medium">{formatDate(os.dataPagamento)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Status:</span>
+                      <span className="text-slate-600">Status do Pagamento:</span>
                       <Badge className={os.pago ? 'bg-green-500' : 'bg-amber-500'}>
                         {os.pago ? 'Pago' : 'Pendente'}
                       </Badge>
@@ -1105,7 +1119,7 @@ export function OSPageClient({ os }: OSPageClientProps) {
           </Card>
         )}
 
-        {/* Aprovação do Orçamento - Aparece quando está aguardando aprovação */}
+        {/* Aprovação do Orçamento - Aparece quando está aguardando aprovação e ainda não foi aprovado */}
         {os.status === 'aguardando_aprovacao' && os.aprovado === null && (
           <Card className="border-amber-200 bg-amber-50 mb-6">
             <CardHeader className="pb-2">
@@ -1118,12 +1132,18 @@ export function OSPageClient({ os }: OSPageClientProps) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {os.orcamento && os.orcamento > 0 && (
+              {(os.orcamento || valorTotal > 0) && (
                 <div className="bg-white p-4 rounded-lg border border-amber-200 mb-4">
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-medium text-slate-700">Valor do Orçamento:</span>
-                    <span className="text-2xl font-bold text-emerald-600">{formatCurrency(os.orcamento)}</span>
+                    <span className="text-2xl font-bold text-emerald-600">{formatCurrency(valorTotal > 0 ? valorTotal : os.orcamento)}</span>
                   </div>
+                  {os.formaPagamento && (
+                    <div className="flex justify-between items-center mt-2 text-sm">
+                      <span className="text-slate-600">Forma de Pagamento:</span>
+                      <span className="font-medium">{FORMAS_PAGAMENTO[os.formaPagamento] || os.formaPagamento}</span>
+                    </div>
+                  )}
                 </div>
               )}
               <div className="flex flex-col sm:flex-row gap-3">

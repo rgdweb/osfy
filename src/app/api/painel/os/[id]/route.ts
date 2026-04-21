@@ -39,6 +39,13 @@ export async function PATCH(request: NextRequest, { params }: Props) {
     if (body.status && body.status !== osExistente.status) {
       updateData.status = body.status
       
+      // Se status for "aguardando_aprovacao", resetar aprovação para null
+      // (garante que o botão de aprovação apareça na página pública)
+      if (body.status === 'aguardando_aprovacao') {
+        updateData.aprovado = null
+        updateData.dataAprovacao = null
+      }
+      
       // Se status for "entregue", finalizar OS e calcular garantia
       if (body.status === 'entregue') {
         updateData.dataFinalizacao = new Date()
@@ -63,12 +70,23 @@ export async function PATCH(request: NextRequest, { params }: Props) {
 
     if (body.orcamento !== undefined) {
       updateData.orcamento = body.orcamento ? parseFloat(body.orcamento) : null
-      // Só mudar para aguardando_aprovacao se a OS NÃO está paga e NÃO está em status avançado
+      
+      // Verificar se deve mudar status para aguardando_aprovacao
+      // Regras:
+      // 1. Se a OS está em status avançado (pronto/entregue), NÃO regredir o status
+      // 2. Se o status atual já é avançado ou o novo status seria avançado, manter
+      // 3. Caso contrário, se tem orçamento, solicitar aprovação do cliente
       const statusAvancados = ['pronto', 'entregue']
-      const statusJaPago = body.pago !== undefined ? body.pago : osExistente.pago
-      if (!statusJaPago && !statusAvancados.includes(osExistente.status) && (!body.status || !statusAvancados.includes(body.status))) {
+      const statusAtualAvancado = statusAvancados.includes(osExistente.status)
+      const novoStatusAvancado = body.status ? statusAvancados.includes(body.status) : false
+      
+      if (!statusAtualAvancado && !novoStatusAvancado) {
+        // OS não está em status avançado - solicitar aprovação do orçamento
         updateData.status = 'aguardando_aprovacao'
         updateData.aprovado = null
+      } else if (statusAtualAvancado && osExistente.aprovado === null && osExistente.orcamento !== null) {
+        // OS está em status avançado mas nunca foi aprovada (caso raro) - manter status, resetar aprovação
+        // Não regredir o status, apenas marcar que precisa de aprovação para registro
       }
     }
 
@@ -86,6 +104,14 @@ export async function PATCH(request: NextRequest, { params }: Props) {
 
     if (body.valorPecas !== undefined) {
       updateData.valorPecas = body.valorPecas ? parseFloat(body.valorPecas) : null
+    }
+
+    if (body.formaPagamento !== undefined) {
+      updateData.formaPagamento = body.formaPagamento || null
+    }
+
+    if (body.dataPagamento !== undefined) {
+      updateData.dataPagamento = body.dataPagamento ? new Date(body.dataPagamento) : null
     }
 
     if (body.garantiaDias !== undefined) {
@@ -121,12 +147,17 @@ export async function PATCH(request: NextRequest, { params }: Props) {
     })
 
     // Adicionar histórico se mudou status
-    if (body.status && body.status !== osExistente.status) {
+    // Verificar tanto mudança manual (body.status) quanto automática (via orcamento)
+    const statusFinal = updateData.status as string | undefined
+    const statusMudou = statusFinal && statusFinal !== osExistente.status
+    const statusManualMudou = body.status && body.status !== osExistente.status
+    
+    if (statusMudou) {
       await db.historicoOS.create({
         data: {
           osId: id,
-          descricao: `Status alterado para ${STATUS_LABELS[body.status as keyof typeof STATUS_LABELS] || body.status}`,
-          status: body.status
+          descricao: `Status alterado para ${STATUS_LABELS[statusFinal as keyof typeof STATUS_LABELS] || statusFinal}`,
+          status: statusFinal
         }
       })
     }

@@ -682,22 +682,22 @@ ${os.loja.nome}`,
 
       aguardando_aprovacao: `Olá ${os.cliente.nome}!
 
-🔍 Diagnóstico concluído!
+Diagnóstico concluído!
 
 OS #${os.numeroOs}
 Equipamento: ${os.equipamento}
 
 ${os.diagnostico ? `Diagnóstico: ${os.diagnostico}` : ''}
-${valorTotalOS > 0 ? `\n💰 Valor: ${formatCurrency(valorTotalOS)}` : ''}
+${valorTotalOS > 0 ? `\nValor: ${formatCurrency(valorTotalOS)}` : ''}
 
-✅ Acesse o link para APROVAR ou RECUSAR:
+Acesse o link para APROVAR ou RECUSAR:
 ${linkOS}
 
 ${os.loja.nome}`,
 
       em_reparo: `Olá ${os.cliente.nome}!
 
-🔧 Seu equipamento está em reparo!
+Seu equipamento está em reparo!
 
 OS #${os.numeroOs}
 Equipamento: ${os.equipamento}
@@ -711,7 +711,7 @@ ${os.loja.nome}`,
 
       aguardando_pecas: `Olá ${os.cliente.nome}!
 
-📦 Aguardando peças para seu reparo.
+Aguardando peças para seu reparo.
 
 OS #${os.numeroOs}
 Equipamento: ${os.equipamento}
@@ -725,14 +725,14 @@ ${os.loja.nome}`,
 
       pronto: `Olá ${os.cliente.nome}!
 
-✅ Boa notícia! Seu equipamento está PRONTO!
+Boa notícia! Seu equipamento está PRONTO!
 
 OS #${os.numeroOs}
 Equipamento: ${os.equipamento}
 ${os.marca ? `Marca: ${os.marca}` : ''}
 
-${valorTotalOS > 0 ? `💰 Valor: ${formatCurrency(valorTotalOS)}` : ''}
-📍 Retire na loja: ${os.loja.endereco || ''} ${os.loja.cidade ? `- ${os.loja.cidade}` : ''}
+${valorTotalOS > 0 ? `Valor: ${formatCurrency(valorTotalOS)}` : ''}
+Retire na loja: ${os.loja.endereco || ''} ${os.loja.cidade ? `- ${os.loja.cidade}` : ''}
 
 Mais detalhes:
 ${linkOS}
@@ -741,7 +741,7 @@ ${os.loja.nome}`,
 
       entregue: `Olá ${os.cliente.nome}!
 
-🎉 Equipamento entregue com sucesso!
+Equipamento entregue com sucesso!
 
 OS #${os.numeroOs}
 Equipamento: ${os.equipamento}

@@ -1,11 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { loginLoja, loginSuperAdmin } from '@/lib/auth/auth'
-import { ensureDatabaseInitialized } from '@/lib/db'
+import { ensureDatabaseInitialized, getInitError } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
     // Garantir que o banco está inicializado
-    await ensureDatabaseInitialized()
+    try {
+      await ensureDatabaseInitialized()
+    } catch (dbError: unknown) {
+      const dbErrorMsg = dbError instanceof Error ? dbError.message : String(dbError)
+      console.error('[LOGIN] Erro no banco:', dbErrorMsg)
+      
+      // Retornar erro descritivo para o frontend
+      let mensagemUsuario = 'Erro de conexão com o banco de dados.'
+      
+      if (dbErrorMsg.includes('can\'t reach') || dbErrorMsg.includes('P1001')) {
+        mensagemUsuario = 'Banco de dados inacessível. Verifique se o servidor de banco está ativo.'
+      } else if (dbErrorMsg.includes('does not exist') || dbErrorMsg.includes('P1003')) {
+        mensagemUsuario = 'Tabelas do banco não encontradas. Execute: npx prisma db push'
+      } else if (dbErrorMsg.includes('migration') || dbErrorMsg.includes('P3009')) {
+        mensagemUsuario = 'Banco precisa de migração. Execute: npx prisma db push'
+      } else if (dbErrorMsg.includes('DATABASE_URL')) {
+        mensagemUsuario = 'Variável DATABASE_URL não configurada. Verifique as variáveis de ambiente.'
+      }
+      
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: mensagemUsuario,
+          debug: process.env.NODE_ENV !== 'production' ? dbErrorMsg : undefined
+        },
+        { status: 503 }
+      )
+    }
     
     const body = await request.json()
     const { email, senha, tipo } = body
@@ -16,15 +43,6 @@ export async function POST(request: NextRequest) {
       || request.headers.get('x-real-ip') 
       || 'unknown'
 
-    // Debug log
-    console.log('[LOGIN] Requisição recebida:', {
-      email: email || 'undefined',
-      senhaLength: senha ? senha.length : 0,
-      tipo: tipo || 'auto',
-      userAgent: userAgent?.substring(0, 50),
-      ipAddress
-    })
-
     if (!email || !senha) {
       return NextResponse.json(
         { success: false, error: 'Email e senha são obrigatórios' },
@@ -34,7 +52,6 @@ export async function POST(request: NextRequest) {
 
     // Normalizar email (remover espaços e converter para minúsculo)
     const emailNormalizado = email.toString().trim().toLowerCase()
-    console.log('[LOGIN] Email normalizado:', emailNormalizado)
 
     let result
     let tipoDetectado = tipo
@@ -42,17 +59,13 @@ export async function POST(request: NextRequest) {
     // Se tipo não especificado, tentar detectar automaticamente
     if (!tipo || tipo === 'auto') {
       // Tentar primeiro como superadmin
-      console.log('[LOGIN] Tentando login como superadmin...')
       result = await loginSuperAdmin(emailNormalizado, senha, userAgent, ipAddress)
-      console.log('[LOGIN] Resultado superadmin:', result.success ? 'SUCESSO' : result.error)
       
       if (result.success) {
         tipoDetectado = 'superadmin'
       } else {
         // Se não for superadmin, tentar como loja
-        console.log('[LOGIN] Tentando login como loja...')
         result = await loginLoja(emailNormalizado, senha, userAgent, ipAddress)
-        console.log('[LOGIN] Resultado loja:', result.success ? 'SUCESSO' : result.error)
         if (result.success) {
           tipoDetectado = 'loja'
         }
@@ -67,14 +80,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (!result || !result.success) {
-      console.log('[LOGIN] Falha no login:', result?.error)
       return NextResponse.json(
         { success: false, error: result?.error || 'Email ou senha incorretos' },
         { status: 401 }
       )
     }
-
-    console.log('[LOGIN] Login bem-sucedido! Tipo:', tipoDetectado, 'Sessões ativas:', result.sessoesAtivas)
 
     // Create response with cookie
     const response = NextResponse.json({ 
@@ -99,10 +109,20 @@ export async function POST(request: NextRequest) {
     })
 
     return response
-  } catch (error) {
-    console.error('[LOGIN] Erro:', error)
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    console.error('[LOGIN] Erro inesperado:', errorMsg)
+    
+    // Em desenvolvimento, mostrar o erro real
+    // Em produção, mostrar mensagem genérica mas com código de referência
+    const isDev = process.env.NODE_ENV !== 'production'
+    
     return NextResponse.json(
-      { success: false, error: 'Erro interno do servidor' },
+      { 
+        success: false, 
+        error: isDev ? `Erro: ${errorMsg}` : 'Erro interno do servidor. Tente novamente em alguns instantes.',
+        debug: isDev ? errorMsg : undefined
+      },
       { status: 500 }
     )
   }

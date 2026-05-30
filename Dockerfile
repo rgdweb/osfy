@@ -6,6 +6,8 @@ RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma
+# Dummy DATABASE_URL for prisma generate at install time
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 RUN npm ci --legacy-peer-deps
 
 # Rebuild the source code only when needed
@@ -14,8 +16,10 @@ RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Dummy DATABASE_URL for build time
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 RUN npx prisma generate
-RUN npm run build
+RUN npx next build
 
 # Production image, copy all the files and run next
 FROM base AS runner
